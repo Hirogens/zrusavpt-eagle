@@ -22,7 +22,7 @@
 @REM but they are listed at the end of this file for reference.
 
 
-"c:\Prog\EW5505\common\bin\cspybat" "c:\Prog\EW5505\arm\bin\armproc.dll" "c:\Prog\EW5505\arm\bin\armjtag.dll"  %1 --plugin "c:\Prog\EW5505\arm\bin\<libsupport_plugin>" --flash_loader "c:\Prog\EW5505\arm\config\flashloader\ST\FlashSTR71xF.board" --backend -B "--endian=little" "--cpu=ARM7TDMI" "--fpu=None" "-p" "c:\Prog\EW5505\arm\CONFIG\debugger\ST\iostr711.ddf" "--semihosting" "--device=STR711" "--mac_jtag_device=Wiggler" "--mac_speed=1" "--drv_communication=LPT1" 
+"c:\Prog\EW5505\common\bin\cspybat" "c:\Prog\EW5505\arm\bin\armproc.dll" "c:\Prog\EW5505\arm\bin\armjtag.dll"  %1 --plugin "c:\Prog\EW5505\arm\bin\<libsupport_plugin>" --flash_loader "c:\Prog\EW5505\arm\config\flashloader\ST\FlashSTR71xF.board" --backend -B "--endian=little" "--cpu=ARM7TDMI" "--fpu=None" "-p" "c:\Prog\EW5505\arm\CONFIG\debugger\ST\iostr711.ddf" "--semihosting" "--device=STR711" "--mac_jtag_device=Wiggler" "--mac_speed=2" "--drv_communication=LPT1" 
 
 
 @REM Loaded plugins:
