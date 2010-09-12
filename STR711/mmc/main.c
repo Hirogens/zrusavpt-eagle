@@ -76,247 +76,184 @@ int putchar(int ch) {
     return ch;
 }
 
-int main(void)
+
+#define SPI_CS_LOW()    GPIO_BitWrite(GPIO0, 12, 0)
+#define SPI_CS_HIGH()    {for (i=0; i<0x0008; i++); GPIO_BitWrite(GPIO0, 12, 1);}
+
+
+//---------------------------------------------------------------------
+void mmcSendCmd (const char cmd, unsigned long data, const char crc)
 {
-  #ifdef DEBUG
-  debug();
-  #endif
+  char frame[6];
+  char temp;
+  int i;
+
+  frame[0]=(cmd|0x40);
+  for(i=3;i>=0;i--){
+    temp=(char)(data>>(8*i));
+    frame[4-i]=(temp);
+  }
+  frame[5]=(crc);
+  for(i=0;i<6;i++)
+    BSPI_WordSend(BSPI1, frame[i]);
+}
+
+
+char mmcGetResponse(void)
+{
+  //Response comes 1-8bytes after command
+  //the first bit will be a 0
+  //followed by an error code
+  //data will be 0xff until response
+  int i=0;
+
+  char response;
+
+  while(i<=64)
+  {
+   BSPI_WordSend(BSPI1, 0xff);
+   if(response==0x00)break;
+   if(response==0x01)break;
+   i++;
+  }
+  return response;
+}
+
+#define trigger() {u16 i; GPIO_BitWrite(GPIO1, 9, 1); for(i = 0; i < 32; i++); GPIO_BitWrite(GPIO1, 9, 0);}
+#define LED_OFF     GPIO_BitWrite(GPIO1, 8, 1);
+#define LED_ON     GPIO_BitWrite(GPIO1, 8, 0);
+
+int main(void) {
+    u16 i, b;
+
+#ifdef DEBUG
+    debug();
+#endif
+
+// Trigger
+    GPIO_BitWrite(GPIO1, 9, 0);
+    GPIO_Config(GPIO1, 1 << 9, GPIO_OUT_PP);
+
+// LED
+    LED_OFF;
+    GPIO_Config(GPIO1, 1 << 8, GPIO_OUT_PP);
+
+
 /* GPIO peripheral configuration -------------------------------------------*/
 
-  /* Configure the GPIO pins */
-  GPIO_Config(GPIO0, UARTX_Tx_Pin, GPIO_AF_PP);
-  GPIO_Config(GPIO0, UARTX_Rx_Pin, GPIO_IN_TRI_CMOS);
+/* Configure the GPIO pins */
+    GPIO_Config(GPIO0, UARTX_Tx_Pin, GPIO_AF_PP);
+    GPIO_Config(GPIO0, UARTX_Rx_Pin, GPIO_IN_TRI_CMOS);
 
 /* UART peripheral configuration -------------------------------------------*/
 
-  /*  Configure the UART X */
-  /*  Turn UARTX on */
-  UART_OnOffConfig(UARTX, ENABLE);
-  /* Disable FIFOs */
-  UART_FifoConfig (UARTX, DISABLE);
-  /* Reset the UART_RxFIFO */
-  UART_FifoReset  (UARTX , UART_RxFIFO);
-  /* Reset the UART_TxFIFO */
-  UART_FifoReset  (UARTX , UART_TxFIFO);
-  /* Disable Loop Back */
-  UART_LoopBackConfig(UARTX , DISABLE);
+    /*  Configure the UART X */
+    /*  Turn UARTX on */
+    UART_OnOffConfig(UARTX, ENABLE);
+    /* Disable FIFOs */
+    UART_FifoConfig (UARTX, DISABLE);
+    /* Reset the UART_RxFIFO */
+    UART_FifoReset  (UARTX , UART_RxFIFO);
+    /* Reset the UART_TxFIFO */
+    UART_FifoReset  (UARTX , UART_TxFIFO);
+    /* Disable Loop Back */
+    UART_LoopBackConfig(UARTX , DISABLE);
                                          /* Configure the UARTX as following:
                                             - Baudrate = 9600 Bps
                                             - No parity
                                             - 8 data bits
                                             - 1 stop bit */
-  UART_Config(UARTX,9600,UART_NO_PARITY,UART_1_StopBits,UARTM_8D);
-   /* Enable Rx */
-  UART_RxConfig(UARTX ,ENABLE);
+    UART_Config(UARTX,9600,UART_NO_PARITY,UART_1_StopBits,UARTM_8D);
+    /* Enable Rx */
+    UART_RxConfig(UARTX ,ENABLE);
 
 
     printf("T_MMC " __DATE__ "\r\n");
 
-    printf("Configuring SPI\r\n");
+//    printf("Configuring SPI\r\n");
 
-//-----------------------------------
+/* GPIO configuration ------------------------------------------------------*/
+/* Configure MOSIx, MISOx, and SCLKx pins as Alternate function Push Pull */
+    GPIO_Config (GPIO0, 0x0070, GPIO_AF_PP);
 
-/* Configure GPI00 on mode Alternate function Push Pull */
-//   GPIO_Config (GPIO0, 0x0070, GPIO_AF_PP); //AF
-//   GPIO_BitWrite(GPIO0, 7, 1);
-//   GPIO_Config (GPIO0, 0x0080, GPIO_IN_TRI_CMOS); //AF
-//   GPIO_Config (GPIO1, 0x0100, GPIO_OUT_PP);
-   //IN_TRI_CMOS
-//   GPIO_Config (GPIO0, 0x0080, GPIO_AF_PP);
+/* Configure nSSx pins mode as Input Weak PU/PD */
+    GPIO_Config (GPIO0, 0x0080, GPIO_IPUPD_WP);
+    GPIO_BitWrite(GPIO0, 3, 1);
+    GPIO_BitWrite(GPIO0, 7, 1);
 
-//
-///* -------------------------------------------
-//Configure BSPI1 as a Master
-//------------------------------------------- */
-///* Initialize BSPI1 */
-//   BSPI_Init   ( BSPI1 ) ;
-//
-///* Configure Baud rate Frequency: ---> APB1/6 */
-////   BSPI_ClockDividerConfig ( BSPI1, 6);
-//      BSPI_ClockDividerConfig ( BSPI1, 32);
-//
-///* Enable BSPI1 */
-//   BSPI_Enable ( BSPI1 , ENABLE );
-//
-///* Configure BSPI1 as a Master */
-//   BSPI_MasterEnable ( BSPI1,ENABLE);//
-//
-///* Configure the clock to be active low */
-//   BSPI_ClkActiveHigh(BSPI1,DISABLE); //
-//
-///* Enable capturing the first Data sample on the first edge of SCK */
-//   BSPI_ClkFEdge(BSPI1,DISABLE);
-//
-///* Set the word length to 8 bit */
-//   BSPI_8bLEn(BSPI1, ENABLE);
-//
-///*  Configure the depth of transmit to 1 word */
-//   BSPI_TrFifoDepth(BSPI1, 1);
-///* Point on the word to transit */
-//
-//   BSPI1->CLK = 0x0020;
-//   BSPI1->CSR1 = 0x0102; //00000001 00000010
-//   BSPI1->CSR2 = 0x0000; //00000000 00000000
-//   BSPI1->CSR1 = 0x0103; //00000001 00000011
-//
-// /* Configure GPI00 on mode Alternate function Push Pull */
-//    GPIO_Config (GPIO0, 0x00FF, GPIO_AF_PP);
-//
-// /* -------------------------------------------
-// Configure BSPI0 as a Master
-// ------------------------------------------- */
-// /* Enable the BSPI0 interface */
-//    BSPI_BSPI0Conf(ENABLE);
-//
-// /* Initialize BSPI0 */
-//    BSPI_Init   ( BSPI0 ) ;
-//
-// /* Configure Baud rate Frequency: ---> APB1/6 */
-//    BSPI_ClockDividerConfig ( BSPI0, 6);
-//
-// /* Enable BSPI0 */
-//    BSPI_Enable ( BSPI0 , ENABLE );
-//
-// /* Configure BSPI0 as a Master */
-//    BSPI_MasterEnable ( BSPI0,ENABLE);
-//
-// /* Configure the clock to be active high */
-//    BSPI_ClkActiveHigh(BSPI0,ENABLE);
-//
-// /* Enable capturing the first Data sample on the first edge of SCK */
-//    BSPI_ClkFEdge(BSPI0,DISABLE);
-//
-// /* Set the word length to 16 bit */
-//    BSPI_8bLEn(BSPI0,ENABLE);
-//
-// /*  Configure the depth of transmit to 9 words */
-//    BSPI_TrFifoDepth(BSPI0,9);
-// /* Point on the word to transit */
-
-
-
-//   GPIO_Config (GPIO0, 0x0080, GPIO_IPUPD_WP);
-//   GPIO_BitWrite(GPIO0, 7, 0);
-
-/* Configure GPI00 on mode Alternate function Push Pull */
-//    GPIO_Config (GPIO0, 0x007F, GPIO_AF_PP);
-//    GPIO_Config (GPIO0, 0x0080, GPIO_HI_AIN_TRI);
-//   GPIO_BitWrite(GPIO0, 3, 1);
-//   GPIO_Config (GPIO0, 0x0008, GPIO_OUT_PP);
-
-
-  /* GPIO configuration ------------------------------------------------------*/
-  /* Configure MOSIx, MISOx, and SCLKx pins as Alternate function Push Pull */
-  GPIO_Config (GPIO0, 0x0077, GPIO_AF_PP);
-
-  /* Configure nSSx pins mode as Input Tristate CMOS */
-  GPIO_Config (GPIO0, 0x0088, GPIO_IN_TRI_CMOS);
-
-/* -------------------------------------------
-Configure BSPI0 as a Master
-------------------------------------------- */
-/* Enable the BSPI0 interface */
-   BSPI_BSPI0Conf(ENABLE);
-
-/* Initialize BSPI0 */
-   BSPI_Init   ( BSPI0 ) ;
-
-/* Configure Baud rate Frequency: ---> APB1/6 */
-   BSPI_ClockDividerConfig ( BSPI0, 6);
-
-/* Enable BSPI0 */
-   BSPI_Enable ( BSPI0 , ENABLE );
-
-/* Configure BSPI0 as a Master */
-   BSPI_MasterEnable ( BSPI0,ENABLE);
-
-/* Configure the clock to be active high */
-   BSPI_ClkActiveHigh(BSPI0,ENABLE);
-
-/* Enable capturing the first Data sample on the first edge of SCK */
-   BSPI_ClkFEdge(BSPI0,DISABLE);
-
-/* Set the word length to 16 bit */
-   BSPI_8bLEn(BSPI0,ENABLE);
-
-/*  Configure the depth of transmit to 9 words */
-   BSPI_TrFifoDepth(BSPI0,9);
-/* Point on the word to transit */
-
+    SPI_CS_HIGH();
+    GPIO_Config (GPIO0, 1 << 12, GPIO_OUT_PP);
 
 /* -------------------------------------------
 Configure BSPI1 as a Master
 ------------------------------------------- */
 /* Initialize BSPI1 */
-   BSPI_Init   ( BSPI1 ) ;
+    BSPI_Init   ( BSPI1 ) ;
 
 /* Configure Baud rate Frequency: ---> APB1/6 */
-   BSPI_ClockDividerConfig ( BSPI1, 6);
+    BSPI_ClockDividerConfig ( BSPI1, 6);
 
 /* Enable BSPI1 */
-   BSPI_Enable ( BSPI1 , ENABLE );
+    BSPI_Enable ( BSPI1 , ENABLE );
 
 /* Configure BSPI1 as a Master */
-   BSPI_MasterEnable ( BSPI1,ENABLE);
+    BSPI_MasterEnable ( BSPI1,ENABLE);
 
-/* Configure the clock to be active high */
-   BSPI_ClkActiveHigh(BSPI1,ENABLE);
+/* Configure the clock to be active low */
+    BSPI_ClkActiveHigh(BSPI1,DISABLE);
 
 /* Enable capturing the first Data sample on the first edge of SCK */
-   BSPI_ClkFEdge(BSPI1,DISABLE);
+    BSPI_ClkFEdge(BSPI1,DISABLE);
 
-/* Set the word length to 16 bit */
-   BSPI_8bLEn(BSPI1,ENABLE);
+/* Set the word length to 8 bit */
+    BSPI_8bLEn(BSPI1,ENABLE);
 
-/*  Configure the depth of transmit to 9 words */
-   BSPI_TrFifoDepth(BSPI1,9);
+/*  Configure the depth of transmit to 1 word/byte */
+    BSPI_TrFifoDepth(BSPI1,1);
 /* Point on the word to transit */
 
+    LED_ON;
+    SPI_CS_HIGH();
+    for(i=0;i<=9;i++) {
+        BSPI_WordSend(BSPI1, 0xFF);
+    }
+
+    trigger();
+
+    SPI_CS_LOW();
+
+    mmcSendCmd(0x00,0,0x95);
+    if(mmcGetResponse()!=0x01) {
+       printf("no response\r\n");
+    }
+
+    char response=0x01;
+
+    while(response==0x01) {
+        printf("Sending Command 1");
+        SPI_CS_HIGH();
+        BSPI_WordSend(BSPI1, 0xff);
+        SPI_CS_LOW();
+        mmcSendCmd(0x01,0x00,0xff);
+        response = mmcGetResponse();
+    }
+    SPI_CS_HIGH();                //!!!!!!!!!!!
+    BSPI_WordSend(BSPI1, 0xff);
+    printf("MMC INITIALIZED AND SET TO SPI MODE PROPERLY.\r\n");
+    LED_OFF;
+
+    while(1);// trigger();
+
+    while(1) {
+        SPI_CS_LOW();
+        BSPI_WordSend(BSPI1, 0xCC);
+        for (i=0; i<0x0008; i++);
+        SPI_CS_HIGH();
+//        putchar('.');
+    }
 
 
 
-
-   while(1) {
-    BSPI_WordSend(BSPI0, 0xAA);     // Sends one byte (BSPI0 is cfg'ed as 8bit, thus only one byte)
-    BSPI_WordSend(BSPI1, 0xCC);
-    putchar('.');
-   }
-
-//    while(1) {
-//        GPIO_BitWrite(GPIO0, 4, 1);
-//        GPIO_BitWrite(GPIO0, 4, 0);
-//        GPIO_BitWrite(GPIO0, 5, 1);
-//        GPIO_BitWrite(GPIO0, 5, 0);
-//        GPIO_BitWrite(GPIO0, 6, 1);
-//        GPIO_BitWrite(GPIO0, 6, 0);
-//        GPIO_BitWrite(GPIO0, 7, 1);
-//        GPIO_BitWrite(GPIO0, 7, 0);
-//        GPIO_BitWrite(GPIO1, 8, 1);
-//        GPIO_BitWrite(GPIO1, 8, 0);
-//    }
-
-//-----------------------------------
-
-    while(1);
-
-
-//   while(1)
-//   {
-//     for(i=0;i<4;i++)
-//     {
-//       UART_ByteSend(UARTX, (u8 *)&bBuffer[i]);
-//       /* wait until the data transmission is finished */
-//       while(!((UART_FlagStatus(UARTX)) & UART_TxEmpty));
-//     }
-//
-//     for(i=0;i<4;i++)
-//     {
-//     	/*  wait until data is received */
-//       while(!(UART_FlagStatus(UARTX) & UART_RxBufFull));
-//       /* Get the received data, set the guard time to 0xFF */
-//       UARTStatus = UART_ByteReceive(UARTX, (u8 *)&bBuffer[i], 0xFF);
-//     }
-//    }
 }
 
 /******************* (C) COPYRIGHT 2003 STMicroelectronics *****END OF FILE****/
