@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<project>
+  <fileVersion>2</fileVersion>
+  <fileChecksum>41770872</fileChecksum>
+  <configuration>
+    <name>Debug</name>
+    <outputs>
+      <file>$TOOLKIT_DIR$\examples\ST\STR71x\STR71xLibrary\startup\71x_vect.s</file>
+      <file>$TOOLKIT_DIR$\examples\ST\STR71x\STR71xLibrary\source\rccu.c</file>
+      <file>$TOOLKIT_DIR$\lib\shs_l.a</file>
+      <file>$PROJ_DIR$\Debug\Obj\71x_vect.o</file>
+      <file>$TOOLKIT_DIR$\examples\ST\STR71x\STR71xLibrary\source\gpio.c</file>
+      <file>$PROJ_DIR$\Debug\Obj\71x_init.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\uart.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\main.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\71x_it.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\71x_lib.pbi</file>
+      <file>$TOOLKIT_DIR$\inc\stdio.h</file>
+      <file>$TOOLKIT_DIR$\inc\DLib_Product.h</file>
+      <file>$TOOLKIT_DIR$\lib\dl4t_al_in.a</file>
+      <file>$PROJ_DIR$\Debug\Obj\bspi.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\gpio.o</file>
+      <file>$TOOLKIT_DIR$\inc\ysizet.h</file>
+      <file>$TOOLKIT_DIR$\inc\DLib_Defaults.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\71x_it.pbi</file>
+      <file>$PROJ_DIR$\..\include\pcu.h</file>
+      <file>$TOOLKIT_DIR$\inc\DLib_Config_Normal.h</file>
+      <file>$PROJ_DIR$\..\include\71x_type.h</file>
+      <file>$PROJ_DIR$\71x_conf.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\uart.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\71x_lib.o</file>
+      <file>$PROJ_DIR$\..\include\gpio.h</file>
+      <file>$PROJ_DIR$\..\include\rccu.h</file>
+      <file>$PROJ_DIR$\..\include\71x_lib.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\rccu.o</file>
+      <file>$PROJ_DIR$\Debug\Exe\t_mmc.out</file>
+      <file>$PROJ_DIR$\..\linker\STR71x_FLASH.icf</file>
+      <file>$TOOLKIT_DIR$\inc\DLib_Threads.h</file>
+      <file>$PROJ_DIR$\..\include\71x_it.h</file>
+      <file>$TOOLKIT_DIR$\inc\yvals.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\t_mmc.pbd</file>
+      <file>$TOOLKIT_DIR$\inc\ycheck.h</file>
+      <file>$PROJ_DIR$\..\include\71x_map.h</file>
+      <file>$TOOLKIT_DIR$\inc\xencoding_limits.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\bspi.pbi</file>
+      <file>$PROJ_DIR$\..\include\bspi.h</file>
+      <file>$TOOLKIT_DIR$\lib\rt4t_al.a</file>
+      <file>$PROJ_DIR$\Debug\Obj\gpio.pbi</file>
+      <file>$PROJ_DIR$\..\include\uart.h</file>
+      <file>$PROJ_DIR$\71x_it.c</file>
+      <file>$PROJ_DIR$\main.c</file>
+      <file>$PROJ_DIR$\Debug\Obj\main.pbi</file>
+      <file>$TOOLKIT_DIR$\examples\ST\STR71x\STR71xLibrary\source\71x_lib.c</file>
+      <file>$PROJ_DIR$\Debug\Obj\rccu.pbi</file>
+      <file>$TOOLKIT_DIR$\examples\ST\STR71x\STR71xLibrary\startup\71x_init.s</file>
+      <file>$TOOLKIT_DIR$\examples\ST\STR71x\STR71xLibrary\source\uart.c</file>
+      <file>$PROJ_DIR$\..\source\bspi.c</file>
+    </outputs>
+    <file>
+      <name>C:\Prog\EW5505\arm\examples\ST\STR71x\STR71xLibrary\startup\71x_vect.s</name>
+      <outputs>
+        <tool>
+          <name>AARM</name>
+          <file> 3</file>
+        </tool>
+      </outputs>
+    </file>
+    <file>
+      <name>C:\Prog\EW5505\arm\examples\ST\STR71x\STR71xLibrary\source\rccu.c</name>
+      <outputs>
+        <tool>
+          <name>ICCARM</name>
+          <file> 27</file>
+        </tool>
+        <tool>
+          <name>BICOMP</name>
+          <file> 46</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>ICCARM</name>
+          <file> 25 35 21 20</file>
+        </tool>
+        <tool>
+          <name>BICOMP</name>
+          <file> 25 35 21 20</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>C:\Prog\EW5505\arm\examples\ST\STR71x\STR71xLibrary\source\gpio.c</name>
+      <outputs>
+        <tool>
+          <name>ICCARM</name>
+          <file> 14</file>
+        </tool>
+        <tool>
+          <name>BICOMP</name>
+          <file> 40</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>ICCARM</name>
+          <file> 24 35 21 20</file>
+        </tool>
+        <tool>
+          <name>BICOMP</name>
+          <file> 24 35 21 20</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\Debug\Exe\t_mmc.out</name>
+      <inputs>
+        <tool>
+          <name>ILINK</name>
+          <file> 29 5 8 23 3 13 14 7 27 22 2 39 12</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>[ROOT_NODE]</name>
+      <outputs>
+        <tool>
+          <name>ILINK</name>
+          <file> 28</file>
+        </tool>
+      </outputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\Debug\Obj\t_mmc.pbd</name>
+      <inputs>
+        <tool>
+          <name>BILINK</name>
+          <file> 17 9 37 40 44 46 6</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\71x_it.c</name>
+      <outputs>
+        <tool>
+          <name>ICCARM</name>
+          <file> 8</file>
+        </tool>
+        <tool>
+          <name>BICOMP</name>
+          <file> 17</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>ICCARM</name>
+          <file> 31 26 35 21 20 38 24 18 25 41</file>
+        </tool>
+        <tool>
+          <name>BICOMP</name>
+          <file> 31 26 35 21 20 38 24 18 25 41</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\main.c</name>
+      <outputs>
+        <tool>
+          <name>ICCARM</name>
+          <file> 7</file>
+        </tool>
+        <tool>
+          <name>BICOMP</name>
+          <file> 44</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>ICCARM</name>
+          <file> 10 34 32 16 19 11 36 30 15 26 35 21 20 38 24 18 25 41</file>
+        </tool>
+        <tool>
+          <name>BICOMP</name>
+          <file> 10 34 32 16 11 36 30 15 26 35 21 20 38 24 18 25 41</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>C:\Prog\EW5505\arm\examples\ST\STR71x\STR71xLibrary\source\71x_lib.c</name>
+      <outputs>
+        <tool>
+          <name>ICCARM</name>
+          <file> 23</file>
+        </tool>
+        <tool>
+          <name>BICOMP</name>
+          <file> 9</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>ICCARM</name>
+          <file> 35 21 20</file>
+        </tool>
+        <tool>
+          <name>BICOMP</name>
+          <file> 35 21 20</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>C:\Prog\EW5505\arm\examples\ST\STR71x\STR71xLibrary\startup\71x_init.s</name>
+      <outputs>
+        <tool>
+          <name>AARM</name>
+          <file> 5</file>
+        </tool>
+      </outputs>
+    </file>
+    <file>
+      <name>C:\Prog\EW5505\arm\examples\ST\STR71x\STR71xLibrary\source\uart.c</name>
+      <outputs>
+        <tool>
+          <name>ICCARM</name>
+          <file> 22</file>
+        </tool>
+        <tool>
+          <name>BICOMP</name>
+          <file> 6</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>ICCARM</name>
+          <file> 41 35 21 20 25</file>
+        </tool>
+        <tool>
+          <name>BICOMP</name>
+          <file> 41 35 21 20 25</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\source\bspi.c</name>
+      <outputs>
+        <tool>
+          <name>ICCARM</name>
+          <file> 13</file>
+        </tool>
+        <tool>
+          <name>BICOMP</name>
+          <file> 37</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>ICCARM</name>
+          <file> 38 35 21 20</file>
+        </tool>
+        <tool>
+          <name>BICOMP</name>
+          <file> 38 35 21 20</file>
+        </tool>
+      </inputs>
+    </file>
+  </configuration>
+</project>
+
+
