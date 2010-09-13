@@ -218,6 +218,9 @@ Configure BSPI1 as a Master
         BSPI_WordSend(BSPI1, 0xFF);
     }
 
+    sd_raw_init();
+    while(1);
+
     trigger();
 
     SPI_CS_LOW();
