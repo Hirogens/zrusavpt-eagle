@@ -848,6 +848,9 @@
   <file>
     <name>$PROJ_DIR$\main.c</name>
   </file>
+  <file>
+    <name>$PROJ_DIR$\sd_raw.c</name>
+  </file>
 </project>
 
 

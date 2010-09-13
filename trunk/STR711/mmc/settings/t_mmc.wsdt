@@ -52,7 +52,7 @@
       
       
       
-    <Pane><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\main.c</Filename><XPos>0</XPos><YPos>215</YPos><SelStart>7067</SelStart><SelEnd>7067</SelEnd></Tab><ActiveTab>0</ActiveTab><Tab><Factory>TextEditor</Factory><Filename>C:\Prog\EW5505\arm\examples\ST\STR71x\STR71xLibrary\source\uart.c</Filename><XPos>0</XPos><YPos>172</YPos><SelStart>8108</SelStart><SelEnd>8108</SelEnd></Tab></Pane><ActivePane>0</ActivePane><Sizes><Pane><X>1000000</X><Y>1000000</Y></Pane></Sizes><SplitMode>1</SplitMode></Editor>
+    <Pane><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\main.c</Filename><XPos>0</XPos><YPos>203</YPos><SelStart>6537</SelStart><SelEnd>6537</SelEnd></Tab><ActiveTab>0</ActiveTab><Tab><Factory>TextEditor</Factory><Filename>C:\Prog\EW5505\arm\examples\ST\STR71x\STR71xLibrary\source\uart.c</Filename><XPos>0</XPos><YPos>172</YPos><SelStart>8108</SelStart><SelEnd>8108</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\sd_raw.c</Filename><XPos>0</XPos><YPos>159</YPos><SelStart>5160</SelStart><SelEnd>5171</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\sd_raw_config.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>517</SelStart><SelEnd>517</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\sd_raw.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd></Tab></Pane><ActivePane>0</ActivePane><Sizes><Pane><X>1000000</X><Y>1000000</Y></Pane></Sizes><SplitMode>1</SplitMode></Editor>
     <Positions>
       
       
