@@ -1,23 +1,25 @@
-/******************** (C) COPYRIGHT 2003 STMicroelectronics ********************
-* File Name          : main.c
-* Author             : MCD Application Team
-* Date First Issued  : 16/05/2003
-* Description        : This program demonstrates how to use the UART with the
-*                      STR71x software library.
-********************************************************************************
-* History:
-* 13/01/06 : V3.1
-* 24/05/05 : V3.0
-* 30/11/04 : V2.0
-* 16/05/03 : Created
-*******************************************************************************
- THE PRESENT SOFTWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS WITH
- CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
- AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT, INDIRECT
- OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE CONTENT
- OF SUCH SOFTWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING INFORMATION
- CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
-*******************************************************************************/
+/*********************************************************************
+ *
+ * Code testing the basic functionality of STR711 (using Olimex H711)
+ * The code accesses SD/MMC attached to BSPI1 and communicates with user on UART2
+ *
+ * (based on ST UART demo, using libraries by Roland Riegel)
+ *
+ * This file is free software; you can redistribute it and/or modify
+ * it under the terms of either the GNU General Public License version 2
+ * or the GNU Lesser General Public License version 2.1, both as
+ * published by the Free Software Foundation.
+ *
+ *********************************************************************
+ * FileName:    main.c
+ * Depends:
+ * Processor:   STR711
+ *
+ * Author               Date       Comment
+ *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * Kubik                9/14/2010  code cleanup
+ ********************************************************************/
+
 
 #include <stdio.h>
 #include "71x_lib.h"
@@ -26,6 +28,10 @@
 #include "partition.h"
 #include "fat.h"
 
+//-------------------------------------------------------------------
+// Defines
+
+//--- UART definitions - specifies UART that is used as console
 #define UART0_Rx_Pin (0x0001<<8)        /* TQFP 64: pin N° 63 , TQFP 144 pin N° 143 */
 #define UART0_Tx_Pin (0x0001<<9)        /* TQFP 64: pin N° 64 , TQFP 144 pin N° 144 */
 
@@ -38,6 +44,7 @@
 #define UART3_Rx_Pin (0x0001<<1)        /* TQFP 64: pin N° 52 , TQFP 144 pin N° 123 */
 #define UART3_Tx_Pin (0x0001<<0)        /* TQFP 64: pin N° 53 , TQFP 144 pin N° 124 */
 
+//--- Modify this to redirect console to another UART
 #define Use_UART2
 
 #ifdef Use_UART0
@@ -68,64 +75,36 @@
 #define  UARTX_Periph  UART3_Periph
 #endif /* Use_UART3 */
 
+//--- Trigger - this just pulses P1.9 that's used as a trigger for logical analyzer
+#define trigger() {u16 i; GPIO_BitWrite(GPIO1, 9, 1); for(i = 0; i < 32; i++); GPIO_BitWrite(GPIO1, 9, 0);}
 
-u16 i;
-u16 UARTStatus;
-u8 bBuffer[4] = { 'S', 'T', 'R', '7' };
+//--- LED showing the activity of SD card
+#define LED_OFF         GPIO_BitWrite(GPIO1, 8, 1);
+#define LED_ON          GPIO_BitWrite(GPIO1, 8, 0);
+
+//--- defined elsewhere at the moment
+//#define SPI_CS_LOW()    GPIO_BitWrite(GPIO0, 12, 0)
+//#define SPI_CS_HIGH()    {for (i=0; i<0x0008; i++); GPIO_BitWrite(GPIO0, 12, 1);}
 
 
+//---------------------------------------------------------------------------
+// Static variables
+// u16 i;
+// u16 UARTStatus;
+// u8 bBuffer[4] = { 'S', 'T', 'R', '7' };
+
+
+//---------------------------------------------------------------------------
+// Local functions
+
+//--- Defining this redirects printf to UARTx
 int putchar(int ch) {
     UART_ByteSend(UARTX, (u8 *) & ch);
     return ch;
 }
 
 
-//#define SPI_CS_LOW()    GPIO_BitWrite(GPIO0, 12, 0)
-//#define SPI_CS_HIGH()    {for (i=0; i<0x0008; i++); GPIO_BitWrite(GPIO0, 12, 1);}
-
-
-//---------------------------------------------------------------------
-void mmcSendCmd(const char cmd, unsigned long data, const char crc) {
-    char frame[6];
-    char temp;
-    int i;
-
-    frame[0] = (cmd | 0x40);
-    for(i = 3; i >= 0; i--) {
-        temp = (char) (data >> (8 * i));
-        frame[4 - i] = (temp);
-    }
-    frame[5] = (crc);
-    for(i = 0; i < 6; i++)
-        BSPI_WordSend(BSPI1, frame[i]);
-}
-
-
-char mmcGetResponse(void) {
-    //Response comes 1-8bytes after command
-    //the first bit will be a 0
-    //followed by an error code
-    //data will be 0xff until response
-    int i = 0;
-
-    char response;
-
-    while(i <= 64) {
-        BSPI_WordSend(BSPI1, 0xff);
-        if(response == 0x00)
-            break;
-        if(response == 0x01)
-            break;
-        i++;
-    }
-    return response;
-}
-
-#define trigger() {u16 i; GPIO_BitWrite(GPIO1, 9, 1); for(i = 0; i < 32; i++); GPIO_BitWrite(GPIO1, 9, 0);}
-#define LED_OFF     GPIO_BitWrite(GPIO1, 8, 1);
-#define LED_ON     GPIO_BitWrite(GPIO1, 8, 0);
-
-
+//--- Printing basic info about the inserted card
 uint8_t print_disk_info(const struct fat_fs_struct * fs) {
     if(!fs)
         return 0;
@@ -151,6 +130,8 @@ uint8_t print_disk_info(const struct fat_fs_struct * fs) {
 }
 
 
+//---------------------------------------------------------------------------
+// Local functions
 int main(void) {
     u16 i, b;
 
@@ -158,89 +139,57 @@ int main(void) {
     debug();
 #endif
 
-// Trigger
+//--- GPIO peripheral configuration
+
+    // Configure trigger GPIO (P1.9)
     GPIO_BitWrite(GPIO1, 9, 0);
     GPIO_Config(GPIO1, 1 << 9, GPIO_OUT_PP);
 
-// LED
+    // Configure LED GPIO (P1.8, that's the green LED on Olimex H711)
     LED_OFF;
     GPIO_Config(GPIO1, 1 << 8, GPIO_OUT_PP);
 
-
-/* GPIO peripheral configuration -------------------------------------------*/
-
-/* Configure the GPIO pins */
+    // Configure UART GPIO
     GPIO_Config(GPIO0, UARTX_Tx_Pin, GPIO_AF_PP);
     GPIO_Config(GPIO0, UARTX_Rx_Pin, GPIO_IN_TRI_CMOS);
 
-/* UART peripheral configuration -------------------------------------------*/
-
-    /*  Configure the UART X */
-    /*  Turn UARTX on */
+//--- UARTx peripheral configuration - enable it, disable and reset FIFOs, disable loopback, config to 9600/-/8/1, enable RX
     UART_OnOffConfig(UARTX, ENABLE);
-    /* Disable FIFOs */
     UART_FifoConfig(UARTX, DISABLE);
-    /* Reset the UART_RxFIFO */
     UART_FifoReset(UARTX, UART_RxFIFO);
-    /* Reset the UART_TxFIFO */
     UART_FifoReset(UARTX, UART_TxFIFO);
-    /* Disable Loop Back */
     UART_LoopBackConfig(UARTX, DISABLE);
-    /* Configure the UARTX as following:
-       - Baudrate = 9600 Bps
-       - No parity
-       - 8 data bits
-       - 1 stop bit */
     UART_Config(UARTX, 9600, UART_NO_PARITY, UART_1_StopBits, UARTM_8D);
-    /* Enable Rx */
     UART_RxConfig(UARTX, ENABLE);
 
-
+//--- print basic info - mostly to identify what the damn H711 thing is running
     printf("T_MMC " __DATE__ "\r\n");
 
-//    printf("Configuring SPI\r\n");
 
-/* GPIO configuration ------------------------------------------------------*/
-/* Configure MOSIx, MISOx, and SCLKx pins as Alternate function Push Pull */
+//--- BSPI1 configuration - first, configure the pins
+    // Configure MOSI1, MISO1, and SCLK1 pins as Alternate function Push Pull - those are P0.4-6
     GPIO_Config(GPIO0, 0x0070, GPIO_AF_PP);
 
-/* Configure nSSx pins mode as Input Weak PU/PD */
+    // Configure nSS1 pin mode as Input Weak PU - this is extremely important, otherwise BSPI1 does not work!
     GPIO_Config(GPIO0, 0x0080, GPIO_IPUPD_WP);
-    GPIO_BitWrite(GPIO0, 3, 1);
-    GPIO_BitWrite(GPIO0, 7, 1);
+    // GPIO_BitWrite(GPIO0, 3, 1);
+    GPIO_BitWrite(GPIO0, 7, 1);                 // and pull it up
 
+    // Now set card CS to inactive state and configure it as output - this is P0.12
     SPI_CS_HIGH();
     GPIO_Config(GPIO0, 1 << 12, GPIO_OUT_PP);
 
-/* -------------------------------------------
-Configure BSPI1 as a Master
-------------------------------------------- */
-/* Initialize BSPI1 */
+//--- BSPI1 configuration - now, configure the BSPI1 itself
     BSPI_Init(BSPI1);
-
-/* Configure Baud rate Frequency: ---> APB1/6 */
-    BSPI_ClockDividerConfig(BSPI1, 6);
-
-/* Enable BSPI1 */
+    BSPI_ClockDividerConfig(BSPI1, 6);          // Configure Baud rate Frequency: ---> APB1/6
     BSPI_Enable(BSPI1, ENABLE);
-
-/* Configure BSPI1 as a Master */
     BSPI_MasterEnable(BSPI1, ENABLE);
+    BSPI_ClkActiveHigh(BSPI1, DISABLE);         // Configure the clock to be active low
+    BSPI_ClkFEdge(BSPI1, DISABLE);              // Enable capturing the first Data sample on the first edge of SCK
+    BSPI_8bLEn(BSPI1, ENABLE);                  // Set the word length to 8 bit
+    BSPI_TrFifoDepth(BSPI1, 1);                 // Configure the depth of transmit to 1 word/byte
 
-/* Configure the clock to be active low */
-    BSPI_ClkActiveHigh(BSPI1, DISABLE);
-
-/* Enable capturing the first Data sample on the first edge of SCK */
-    BSPI_ClkFEdge(BSPI1, DISABLE);
-
-/* Set the word length to 8 bit */
-    BSPI_8bLEn(BSPI1, ENABLE);
-
-/*  Configure the depth of transmit to 1 word/byte */
-    BSPI_TrFifoDepth(BSPI1, 1);
-/* Point on the word to transit */
-
-//    LED_ON;
+// --- Following code detects the card type and displays basic info and card root directory
 
     if(!sd_raw_init()) {
         printf("MMC/SD initialization failed\n");
@@ -315,4 +264,3 @@ Configure BSPI1 as a Master
 
 }
 
-/******************* (C) COPYRIGHT 2003 STMicroelectronics *****END OF FILE****/
