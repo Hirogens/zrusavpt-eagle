@@ -37,7 +37,7 @@
 
 // #define _APB
 // #define _APB1
-// #define _APB2
+#define _APB2
 
 #define _BSPI
 #define _BSPI0

@@ -13,8 +13,8 @@
 
 #include <stdint.h>
 #include "71x_lib.h"
-#define SPI_CS_LOW()    GPIO_BitWrite(GPIO0, 12, 0)
-#define SPI_CS_HIGH()    {unsigned int i; for (i=0; i<0x0008; i++); GPIO_BitWrite(GPIO0, 12, 1);}
+#define SPI_CS_LOW()     {unsigned int i; for (i=0; i<64; i++); GPIO_BitWrite(GPIO0, 12, 0);}
+#define SPI_CS_HIGH()    {unsigned int i; for (i=0; i<64; i++); GPIO_BitWrite(GPIO0, 12, 1);}
 
 #ifdef __cplusplus
 extern "C"
