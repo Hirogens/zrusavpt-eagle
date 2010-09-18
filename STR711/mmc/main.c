@@ -139,6 +139,61 @@ int main(void) {
     debug();
 #endif
 
+//--- System clocks configuration
+//    u32 MCLK_Freq, PLCK1_Freq,PCLK2_Freq ;
+//
+//  RCCU_PCLK1Config (RCCU_RCLK_2);       // Configure PCLK1 = RCLK / 2
+//  RCCU_PCLK2Config (RCCU_RCLK_2);       // Configure PCLK2 = RCLK / 2
+//
+//  RCCU_MCLKConfig (RCCU_DEFAULT);       // Configure MCLK clock for the CPU, RCCU_DEFAULT = RCLK /1
+//
+//  RCCU_PLL1Config (RCCU_PLL1_Mul_12, RCCU_Div_4) ;      // Configure the PLL1 ( * 12 , / 4 )
+//  while(RCCU_FlagStatus(RCCU_PLL1_LOCK) == RESET);      // Wait PLL to lock
+//  RCCU_RCLKSourceConfig (RCCU_PLL1_Output) ;            // Select PLL1_Output as RCLK clock
+//
+//  /* Enable CKOUT clock on APB2 */
+//  APB_ClockConfig (APB2, ENABLE, CKOUT_Periph);
+//
+//  /* Get MCLK, PCLK1, PCLK2 frequency values */
+//  MCLK_Freq=RCCU_FrequencyValue (RCCU_MCLK);
+//  PLCK1_Freq=RCCU_FrequencyValue (RCCU_PCLK1);
+//  PCLK2_Freq=RCCU_FrequencyValue (RCCU_PCLK2);
+//
+//  /* At this step the MCLK = 24 MHz, PCLK1 = 12 MHz and PCLK2 = 12MHz
+//    with an external oscilator equal to 16MHz;  */
+
+    u32 MCLKval;
+    u32 APB1CLKval;
+    u32 APB2CLKval;
+
+    /* RCCU peripheral configuration ------------------------------------------ */
+    RCCU_Div2Config(DISABLE);
+    /*  Configure FCLK = RCLK /1 */
+    RCCU_FCLKConfig(RCCU_DEFAULT);
+//  RCCU_FCLKConfig ( RCCU_RCLK_2 );
+
+    /*  Configure PCLK = RCLK /8 */
+    RCCU_PCLKConfig(RCCU_RCLK_8);
+
+    /*  Configure MCLK clock for the CPU, RCCU_DEFAULT = RCLK /1 */
+    RCCU_MCLKConfig(RCCU_DEFAULT);
+
+    /*  Configure the PLL1 ( * 12 , / 1 ) */
+    RCCU_PLL1Config(RCCU_PLL1_Mul_12, RCCU_Div_1);
+
+    /*  Wait PLL to lock */
+    while(RCCU_FlagStatus(RCCU_PLL1_LOCK) == RESET);
+
+    /*  Select PLL1_Output as RCLK clock */
+    RCCU_RCLKSourceConfig(RCCU_PLL1_Output);
+
+    MCLKval = RCCU_FrequencyValue(RCCU_MCLK);
+    APB1CLKval = RCCU_FrequencyValue(RCCU_FCLK);
+    APB2CLKval = RCCU_FrequencyValue(RCCU_PCLK);
+//
+// At this step the MCLK = 48 MHz, APB1 clock = 48 MHz and APB2 = 6MHz
+// with an external oscilator equal to 4MHz
+
 //--- GPIO peripheral configuration
 
     // Configure trigger GPIO (P1.9)
@@ -165,6 +220,8 @@ int main(void) {
 //--- print basic info - mostly to identify what the damn H711 thing is running
     printf("T_MMC " __DATE__ "\r\n");
 
+    printf("Frequencies: MCLK=%dkHz, APB1=%dkHz, APB2=%dkHz\n\r", MCLKval / 1000L, APB1CLKval / 1000L, APB2CLKval / 1000L);
+
 
 //--- BSPI1 configuration - first, configure the pins
     // Configure MOSI1, MISO1, and SCLK1 pins as Alternate function Push Pull - those are P0.4-6
@@ -173,7 +230,7 @@ int main(void) {
     // Configure nSS1 pin mode as Input Weak PU - this is extremely important, otherwise BSPI1 does not work!
     GPIO_Config(GPIO0, 0x0080, GPIO_IPUPD_WP);
     // GPIO_BitWrite(GPIO0, 3, 1);
-    GPIO_BitWrite(GPIO0, 7, 1);                 // and pull it up
+    GPIO_BitWrite(GPIO0, 7, 1);         // and pull it up
 
     // Now set card CS to inactive state and configure it as output - this is P0.12
     SPI_CS_HIGH();
@@ -181,18 +238,19 @@ int main(void) {
 
 //--- BSPI1 configuration - now, configure the BSPI1 itself
     BSPI_Init(BSPI1);
-    BSPI_ClockDividerConfig(BSPI1, 6);          // Configure Baud rate Frequency: ---> APB1/6
+    BSPI_ClockDividerConfig(BSPI1, 6);  // Configure Baud rate Frequency: ---> APB1/6
+//    BSPI_ClockDividerConfig(BSPI1, 240);
     BSPI_Enable(BSPI1, ENABLE);
     BSPI_MasterEnable(BSPI1, ENABLE);
-    BSPI_ClkActiveHigh(BSPI1, DISABLE);         // Configure the clock to be active low
-    BSPI_ClkFEdge(BSPI1, DISABLE);              // Enable capturing the first Data sample on the first edge of SCK
-    BSPI_8bLEn(BSPI1, ENABLE);                  // Set the word length to 8 bit
-    BSPI_TrFifoDepth(BSPI1, 1);                 // Configure the depth of transmit to 1 word/byte
+    BSPI_ClkActiveHigh(BSPI1, DISABLE); // Configure the clock to be active low
+    BSPI_ClkFEdge(BSPI1, DISABLE);      // Enable capturing the first Data sample on the first edge of SCK
+    BSPI_8bLEn(BSPI1, ENABLE);          // Set the word length to 8 bit
+    BSPI_TrFifoDepth(BSPI1, 1);         // Configure the depth of transmit to 1 word/byte
 
 // --- Following code detects the card type and displays basic info and card root directory
 
     if(!sd_raw_init()) {
-        printf("MMC/SD initialization failed\n");
+        printf("MMC/SD initialization failed\r\n");
         sd_raw_init();
     }
 
@@ -220,7 +278,7 @@ int main(void) {
 #endif
                                    -1);
         if(!partition) {
-            printf("opening partition failed\n");
+            printf("opening partition failed\r\n");
         }
     }
 
@@ -228,7 +286,7 @@ int main(void) {
     struct fat_fs_struct *fs = fat_open(partition);
 
     if(!fs) {
-        printf("opening filesystem failed\n");
+        printf("opening filesystem failed\r\n");
         while(1);
     }
 
@@ -240,7 +298,7 @@ int main(void) {
     struct fat_dir_struct *dd = fat_open_dir(fs, &directory);
 
     if(!dd) {
-        printf("opening root directory failed\n");
+        printf("opening root directory failed\r\n");
         while(1);
     }
 
@@ -263,4 +321,3 @@ int main(void) {
     while(1);
 
 }
-
