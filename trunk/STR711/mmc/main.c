@@ -18,6 +18,7 @@
  * Author               Date       Comment
  *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * Kubik                9/14/2010  code cleanup
+ * Kubik                9/19/2010  Added secondary UART to LCD, SD works
  ********************************************************************/
 
 
@@ -89,22 +90,20 @@
 
 //---------------------------------------------------------------------------
 // Static variables
-// u16 i;
-// u16 UARTStatus;
-// u8 bBuffer[4] = { 'S', 'T', 'R', '7' };
-
+UART_TypeDef *uart_used;        // This points to UART that printf uses (UARTX for terminal, UART1 for LCD)
 
 //---------------------------------------------------------------------------
 // Local functions
 
 //--- Defining this redirects printf to UARTx
 int putchar(int ch) {
-    UART_ByteSend(UARTX, (u8 *) & ch);
+    u16 i;
+
+    UART_ByteSend(uart_used, (u8 *) & ch);
     return ch;
 }
 
-
-//--- Printing basic info about the inserted card
+//--- Printing basic info about the inserted SD card
 uint8_t print_disk_info(const struct fat_fs_struct * fs) {
     if(!fs)
         return 0;
@@ -134,58 +133,23 @@ uint8_t print_disk_info(const struct fat_fs_struct * fs) {
 // Local functions
 int main(void) {
     u16 i, b;
+    u32 MCLKval;
+    u32 APB1CLKval;
+    u32 APB2CLKval;
 
 #ifdef DEBUG
     debug();
 #endif
 
-//--- System clocks configuration
-//    u32 MCLK_Freq, PLCK1_Freq,PCLK2_Freq ;
-//
-//  RCCU_PCLK1Config (RCCU_RCLK_2);       // Configure PCLK1 = RCLK / 2
-//  RCCU_PCLK2Config (RCCU_RCLK_2);       // Configure PCLK2 = RCLK / 2
-//
-//  RCCU_MCLKConfig (RCCU_DEFAULT);       // Configure MCLK clock for the CPU, RCCU_DEFAULT = RCLK /1
-//
-//  RCCU_PLL1Config (RCCU_PLL1_Mul_12, RCCU_Div_4) ;      // Configure the PLL1 ( * 12 , / 4 )
-//  while(RCCU_FlagStatus(RCCU_PLL1_LOCK) == RESET);      // Wait PLL to lock
-//  RCCU_RCLKSourceConfig (RCCU_PLL1_Output) ;            // Select PLL1_Output as RCLK clock
-//
-//  /* Enable CKOUT clock on APB2 */
-//  APB_ClockConfig (APB2, ENABLE, CKOUT_Periph);
-//
-//  /* Get MCLK, PCLK1, PCLK2 frequency values */
-//  MCLK_Freq=RCCU_FrequencyValue (RCCU_MCLK);
-//  PLCK1_Freq=RCCU_FrequencyValue (RCCU_PCLK1);
-//  PCLK2_Freq=RCCU_FrequencyValue (RCCU_PCLK2);
-//
-//  /* At this step the MCLK = 24 MHz, PCLK1 = 12 MHz and PCLK2 = 12MHz
-//    with an external oscilator equal to 16MHz;  */
-
-    u32 MCLKval;
-    u32 APB1CLKval;
-    u32 APB2CLKval;
-
-    /* RCCU peripheral configuration ------------------------------------------ */
+//--- RCCU peripheral configuration
     RCCU_Div2Config(DISABLE);
-    /*  Configure FCLK = RCLK /1 */
-    RCCU_FCLKConfig(RCCU_DEFAULT);
-//  RCCU_FCLKConfig ( RCCU_RCLK_2 );
-
-    /*  Configure PCLK = RCLK /8 */
-    RCCU_PCLKConfig(RCCU_RCLK_8);
-
-    /*  Configure MCLK clock for the CPU, RCCU_DEFAULT = RCLK /1 */
-    RCCU_MCLKConfig(RCCU_DEFAULT);
-
-    /*  Configure the PLL1 ( * 12 , / 1 ) */
-    RCCU_PLL1Config(RCCU_PLL1_Mul_12, RCCU_Div_1);
-
-    /*  Wait PLL to lock */
-    while(RCCU_FlagStatus(RCCU_PLL1_LOCK) == RESET);
-
-    /*  Select PLL1_Output as RCLK clock */
-    RCCU_RCLKSourceConfig(RCCU_PLL1_Output);
+    RCCU_FCLKConfig(RCCU_DEFAULT);      // Configure FCLK = RCLK /1
+//  RCCU_FCLKConfig ( RCCU_RCLK_2 );    // Can't work - for some reasons, it fails when APB1 clock differs from MCLK
+    RCCU_PCLKConfig(RCCU_RCLK_8);       // Configure PCLK = RCLK /8
+    RCCU_MCLKConfig(RCCU_DEFAULT);      // Configure MCLK clock for the CPU, RCCU_DEFAULT = RCLK /1
+    RCCU_PLL1Config(RCCU_PLL1_Mul_12, RCCU_Div_1);      // Configure the PLL1 ( * 12 , / 1 )
+    while(RCCU_FlagStatus(RCCU_PLL1_LOCK) == RESET);    // Wait PLL to lock
+    RCCU_RCLKSourceConfig(RCCU_PLL1_Output);    // Select PLL1_Output as RCLK clock
 
     MCLKval = RCCU_FrequencyValue(RCCU_MCLK);
     APB1CLKval = RCCU_FrequencyValue(RCCU_FCLK);
@@ -193,6 +157,7 @@ int main(void) {
 //
 // At this step the MCLK = 48 MHz, APB1 clock = 48 MHz and APB2 = 6MHz
 // with an external oscilator equal to 4MHz
+//
 
 //--- GPIO peripheral configuration
 
@@ -208,6 +173,10 @@ int main(void) {
     GPIO_Config(GPIO0, UARTX_Tx_Pin, GPIO_AF_PP);
     GPIO_Config(GPIO0, UARTX_Rx_Pin, GPIO_IN_TRI_CMOS);
 
+    // Configure UART1 GPIO (used for display
+    GPIO_Config(GPIO0, UART1_Tx_Pin, GPIO_AF_PP);
+    GPIO_Config(GPIO0, UARTX_Rx_Pin, GPIO_IN_TRI_CMOS); // not used at the moment
+
 //--- UARTx peripheral configuration - enable it, disable and reset FIFOs, disable loopback, config to 9600/-/8/1, enable RX
     UART_OnOffConfig(UARTX, ENABLE);
     UART_FifoConfig(UARTX, DISABLE);
@@ -217,11 +186,22 @@ int main(void) {
     UART_Config(UARTX, 9600, UART_NO_PARITY, UART_1_StopBits, UARTM_8D);
     UART_RxConfig(UARTX, ENABLE);
 
+//--- UART1 peripheral configuration - enable it, disable and reset FIFOs, disable loopback, config to 9600/-/8/1, disable RX
+    UART_OnOffConfig(UART1, ENABLE);
+    UART_FifoConfig(UART1, DISABLE);
+    UART_FifoReset(UART1, UART_RxFIFO);
+    UART_FifoReset(UART1, UART_TxFIFO);
+    UART_LoopBackConfig(UART1, DISABLE);
+    UART_Config(UART1, 57600, UART_NO_PARITY, UART_1_StopBits, UARTM_8D);
+    UART_RxConfig(UART1, DISABLE);
+
+    uart_used = UARTX;                  // Select terminal as output device
+    putchar(12);                        // Clear screen
+
 //--- print basic info - mostly to identify what the damn H711 thing is running
     printf("T_MMC " __DATE__ "\r\n");
 
-    printf("Frequencies: MCLK=%dkHz, APB1=%dkHz, APB2=%dkHz\n\r", MCLKval / 1000L, APB1CLKval / 1000L, APB2CLKval / 1000L);
-
+    printf("Freq: MCLK=%dMHz, APB1=%dMHz, APB2=%dMHz\r\n", MCLKval / 1000000L, APB1CLKval / 1000000L, APB2CLKval / 1000000L);
 
 //--- BSPI1 configuration - first, configure the pins
     // Configure MOSI1, MISO1, and SCLK1 pins as Alternate function Push Pull - those are P0.4-6
@@ -229,7 +209,6 @@ int main(void) {
 
     // Configure nSS1 pin mode as Input Weak PU - this is extremely important, otherwise BSPI1 does not work!
     GPIO_Config(GPIO0, 0x0080, GPIO_IPUPD_WP);
-    // GPIO_BitWrite(GPIO0, 3, 1);
     GPIO_BitWrite(GPIO0, 7, 1);         // and pull it up
 
     // Now set card CS to inactive state and configure it as output - this is P0.12
@@ -239,7 +218,7 @@ int main(void) {
 //--- BSPI1 configuration - now, configure the BSPI1 itself
     BSPI_Init(BSPI1);
     BSPI_ClockDividerConfig(BSPI1, 6);  // Configure Baud rate Frequency: ---> APB1/6
-//    BSPI_ClockDividerConfig(BSPI1, 240);
+//    BSPI_ClockDividerConfig(BSPI1, 240);      // We should start with slow clock but it's not necessary
     BSPI_Enable(BSPI1, ENABLE);
     BSPI_MasterEnable(BSPI1, ENABLE);
     BSPI_ClkActiveHigh(BSPI1, DISABLE); // Configure the clock to be active low
@@ -247,7 +226,7 @@ int main(void) {
     BSPI_8bLEn(BSPI1, ENABLE);          // Set the word length to 8 bit
     BSPI_TrFifoDepth(BSPI1, 1);         // Configure the depth of transmit to 1 word/byte
 
-// --- Following code detects the card type and displays basic info and card root directory
+//--- Following code detects the card type and displays basic info and card root directory
 
     if(!sd_raw_init()) {
         printf("MMC/SD initialization failed\r\n");
@@ -309,13 +288,13 @@ int main(void) {
     struct fat_dir_entry_struct dir_entry;
 
     while(fat_read_dir(dd, &dir_entry)) {
-        uint8_t spaces = sizeof(dir_entry.long_name) - strlen(dir_entry.long_name) + 4;
+        uint8_t spaces = sizeof(dir_entry.long_name) - strlen(dir_entry.long_name) + 2; //was + 4
 
         printf("%s", dir_entry.long_name);
         putchar(dir_entry.attributes & FAT_ATTRIB_DIR ? '/' : ' ');
         while(spaces--)
             putchar(' ');
-        printf("%d\n\r", dir_entry.file_size);
+        printf("%d\r\n", dir_entry.file_size);
     }
 
     while(1);
