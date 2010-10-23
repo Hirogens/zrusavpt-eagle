@@ -361,7 +361,7 @@ uint8_t sd_raw_locked()
  */
 void sd_raw_send_byte(uint8_t b)
 {
-    BSPI_WordSend(BSPI1, b);
+    BSPI_WordSend(BSPI0, b);
 //    /* wait for byte to be shifted out */
 //    while(!(SPSR & (1 << SPIF)));
 //    SPSR &= ~(1 << SPIF);
@@ -383,8 +383,8 @@ uint8_t sd_raw_rec_byte()
 //    while(!(SPSR & (1 << SPIF)));
 //    SPSR &= ~(1 << SPIF);
 
-    BSPI_WordSend(BSPI1, 0xFF);     //dummy
-    return BSPI_WordReceive(BSPI1);
+    BSPI_WordSend(BSPI0, 0xFF);     //dummy
+    return BSPI_WordReceive(BSPI0);
 }
 
 /**
