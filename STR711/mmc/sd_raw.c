@@ -215,6 +215,7 @@ uint8_t sd_raw_init()
     for(uint16_t i = 0; ; ++i)
     {
         response = sd_raw_send_command(CMD_GO_IDLE_STATE, 0);
+        printf("%x  ", response);
         if(response == (1 << R1_IDLE_STATE))
             break;
 
@@ -362,9 +363,8 @@ uint8_t sd_raw_locked()
 void sd_raw_send_byte(uint8_t b)
 {
     BSPI_WordSend(BSPI0, b);
-//    /* wait for byte to be shifted out */
-//    while(!(SPSR & (1 << SPIF)));
-//    SPSR &= ~(1 << SPIF);
+    /* wait for byte to be shifted out */
+    while(BSPI_FlagStatus(BSPI0, BSPI_TFF) == SET);
 }
 
 /**
@@ -376,14 +376,11 @@ void sd_raw_send_byte(uint8_t b)
  */
 uint8_t sd_raw_rec_byte()
 {
+    /* send dummy data for receiving some */
+    BSPI_WordSend(BSPI0, 0xFF);
+    /* wait for byte to be shifted out */
+    while(BSPI_FlagStatus(BSPI0, BSPI_TFF) == SET);
 
-//
-//    /* send dummy data for receiving some */
-//    SPDR = 0xff;
-//    while(!(SPSR & (1 << SPIF)));
-//    SPSR &= ~(1 << SPIF);
-
-    BSPI_WordSend(BSPI0, 0xFF);     //dummy
     return BSPI_WordReceive(BSPI0);
 }
 
