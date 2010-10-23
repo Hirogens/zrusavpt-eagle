@@ -140,6 +140,7 @@ u8 spi_receive(void) {
 
     while(BSPI_FlagStatus(BSPI0, BSPI_TFF) == SET);
     BSPI_WordSend(BSPI0, 0xFF);     //dummy
+    while(BSPI_FlagStatus(BSPI0, BSPI_TFF) == SET);
     return BSPI_WordReceive(BSPI0);
 }
 
@@ -250,8 +251,13 @@ int main(void) {
       spi_send(0xFF);
     }
 
+    for (i=0; i<0x1000; i++);
+
     // Step 2 - pull CS low and send CMD0. As we're in native mode, CRC must match!
     SPI_CS_LOW();
+
+    for (i=0; i<0x1000; i++);
+
     spi_send(0x40);
     spi_send(0x00);
     spi_send(0x00);
@@ -259,9 +265,12 @@ int main(void) {
     spi_send(0x00);
     spi_send(0x95);
 
-    for(i = 0; i < 10; i++) {
+    for (i=0; i<0x1000; i++);
+
+    printf("\r\nResponses received: ");
+    for(i = 0; i < 200; i++) {
         c = spi_receive();
-        printf("Response received: %x\n", c);
+        printf("%x ", c);
         if(c != 0xFF) {
           break;
         }
