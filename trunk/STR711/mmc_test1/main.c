@@ -23,6 +23,7 @@
 
 
 #include <stdio.h>
+#include "71x_map.h"
 #include "71x_lib.h"
 #include "gpio.h"
 #include "sd_raw.h"
@@ -128,11 +129,25 @@ uint8_t print_disk_info(const struct fat_fs_struct * fs) {
     return 1;
 }
 
+void spi_send(u8 c) {
+
+    /* wait for byte to be shifted out */
+    while(BSPI_FlagStatus(BSPI0, BSPI_TFF) == SET);
+    BSPI_WordSend(BSPI0, c);
+}
+
+u8 spi_receive(void) {
+
+    while(BSPI_FlagStatus(BSPI0, BSPI_TFF) == SET);
+    BSPI_WordSend(BSPI0, 0xFF);     //dummy
+    return BSPI_WordReceive(BSPI0);
+}
 
 //---------------------------------------------------------------------------
 // Local functions
 int main(void) {
     u16 i, b;
+    u8 c;
     u32 MCLKval;
     u32 APB1CLKval;
     u32 APB2CLKval;
@@ -203,15 +218,7 @@ int main(void) {
 
     printf("Freq: MCLK=%dMHz, APB1=%dMHz, APB2=%dMHz\r\n", MCLKval / 1000000L, APB1CLKval / 1000000L, APB2CLKval / 1000000L);
 
-//--- BSPI1 configuration - first, configure the pins
-    // Configure MOSI1, MISO1, and SCLK1 pins as Alternate function Push Pull - those are P0.4-6
-    GPIO_Config(GPIO0, 0x0070, GPIO_AF_PP);
-
-    // Configure nSS1 pin mode as Input Weak PU - this is extremely important, otherwise BSPI1 does not work!
-    GPIO_Config(GPIO0, 0x0080, GPIO_IPUPD_WP);
-    GPIO_BitWrite(GPIO0, 7, 1);         // and pull it up
-
-//--- BSPI1 configuration - first, configure the pins
+//--- BSPI0 configuration - first, configure the pins
     // Configure MOSI0, MISO0, and SCLK0 pins as Alternate function Push Pull - those are P0.0-2
     GPIO_Config(GPIO0, 0x0007, GPIO_AF_PP);
 
@@ -223,21 +230,6 @@ int main(void) {
     SPI_CS_HIGH();
     GPIO_Config(GPIO0, 1 << 12, GPIO_OUT_PP);
 
-#if 0
-// screw BSPI1!!!
-
-//--- BSPI1 configuration - now, configure the BSPI1 itself
-    BSPI_Init(BSPI1);
-//    BSPI_ClockDividerConfig(BSPI1, 6);  // Configure Baud rate Frequency: ---> APB1/6
-    BSPI_ClockDividerConfig(BSPI1, 240);      // We should start with slow clock but it's not necessary
-    BSPI_Enable(BSPI1, ENABLE);
-    BSPI_MasterEnable(BSPI1, ENABLE);
-    BSPI_ClkActiveHigh(BSPI1, DISABLE); // Configure the clock to be active low
-    BSPI_ClkFEdge(BSPI1, DISABLE);      // Enable capturing the first Data sample on the first edge of SCK
-    BSPI_8bLEn(BSPI1, ENABLE);          // Set the word length to 8 bit
-    BSPI_TrFifoDepth(BSPI1, 1);         // Configure the depth of transmit to 1 word/byte
-#endif
-
 //--- BSPI0 configuration - now, configure the BSPI0 itself
     BSPI_BSPI0Conf(ENABLE);              // Enable the BSPI0 interface
     BSPI_Init(BSPI0);
@@ -245,81 +237,40 @@ int main(void) {
     BSPI_ClockDividerConfig(BSPI0, 240);      // We should start with slow clock but it's not necessary
     BSPI_Enable(BSPI0, ENABLE);
     BSPI_MasterEnable(BSPI0, ENABLE);
-    BSPI_ClkActiveHigh(BSPI0, DISABLE); // Configure the clock to be active low
-    BSPI_ClkFEdge(BSPI0, DISABLE);      // Enable capturing the first Data sample on the first edge of SCK
+    BSPI_ClkActiveHigh(BSPI0, DISABLE); // Configure the clock to be active low (CPOL = 0)
+    BSPI_ClkFEdge(BSPI0, DISABLE);      // Enable capturing the first Data sample on the first edge of SCK (CPHA = 0)
     BSPI_8bLEn(BSPI0, ENABLE);          // Set the word length to 8 bit
     BSPI_TrFifoDepth(BSPI0, 1);         // Configure the depth of transmit to 1 word/byte
 
-//--- Following code detects the card type and displays basic info and card root directory
+//--- Let's start with configuring the MMC
 
-    if(!sd_raw_init()) {
-        printf("MMC/SD initialization failed\r\n");
-        sd_raw_init();
+    // Step 1 - send at least 74 clocks while CS is held high
+    SPI_CS_HIGH();
+    for(i = 0; i < 80; i++) {
+      spi_send(0xFF);
     }
 
-    /* open first partition */
-    struct partition_struct *partition = partition_open(sd_raw_read,
-                                                        sd_raw_read_interval,
-#if SD_RAW_WRITE_SUPPORT
-                                                        sd_raw_write,
-                                                        sd_raw_write_interval,
-#else
-                                                        0,
-                                                        0,
-#endif
-                                                        0);
+    // Step 2 - pull CS low and send CMD0. As we're in native mode, CRC must match!
+    SPI_CS_LOW();
+    spi_send(0x40);
+    spi_send(0x00);
+    spi_send(0x00);
+    spi_send(0x00);
+    spi_send(0x00);
+    spi_send(0x95);
 
-    if(!partition) {
-        /* If the partition did not open, assume the storage device
-         * is a "superfloppy", i.e. has no MBR.
-         */
-        partition = partition_open(sd_raw_read, sd_raw_read_interval,
-#if SD_RAW_WRITE_SUPPORT
-                                   sd_raw_write, sd_raw_write_interval,
-#else
-                                   0, 0,
-#endif
-                                   -1);
-        if(!partition) {
-            printf("opening partition failed\r\n");
+    for(i = 0; i < 10; i++) {
+        c = spi_receive();
+        printf("Response received: %x\n", c);
+        if(c != 0xFF) {
+          break;
         }
     }
 
-    /* open file system */
-    struct fat_fs_struct *fs = fat_open(partition);
+    SPI_CS_HIGH();
 
-    if(!fs) {
-        printf("opening filesystem failed\r\n");
-        while(1);
-    }
 
-    /* open root directory */
-    struct fat_dir_entry_struct directory;
 
-    fat_get_dir_entry_of_path(fs, "/", &directory);
-
-    struct fat_dir_struct *dd = fat_open_dir(fs, &directory);
-
-    if(!dd) {
-        printf("opening root directory failed\r\n");
-        while(1);
-    }
-
-    /* print some card information as a boot message */
-    print_disk_info(fs);
-
-    /* print directory listing */
-    struct fat_dir_entry_struct dir_entry;
-
-    while(fat_read_dir(dd, &dir_entry)) {
-        uint8_t spaces = sizeof(dir_entry.long_name) - strlen(dir_entry.long_name) + 2; //was + 4
-
-        printf("%s", dir_entry.long_name);
-        putchar(dir_entry.attributes & FAT_ATTRIB_DIR ? '/' : ' ');
-        while(spaces--)
-            putchar(' ');
-        printf("%d\r\n", dir_entry.file_size);
-    }
 
     while(1);
 
