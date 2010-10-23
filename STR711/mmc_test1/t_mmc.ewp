@@ -846,16 +846,7 @@
     <name>$PROJ_DIR$\..\source\bspi.c</name>
   </file>
   <file>
-    <name>$PROJ_DIR$\fat.c</name>
-  </file>
-  <file>
     <name>$PROJ_DIR$\main.c</name>
-  </file>
-  <file>
-    <name>$PROJ_DIR$\partition.c</name>
-  </file>
-  <file>
-    <name>$PROJ_DIR$\sd_raw.c</name>
   </file>
 </project>
 
