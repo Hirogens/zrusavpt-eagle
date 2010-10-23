@@ -211,20 +211,44 @@ int main(void) {
     GPIO_Config(GPIO0, 0x0080, GPIO_IPUPD_WP);
     GPIO_BitWrite(GPIO0, 7, 1);         // and pull it up
 
+//--- BSPI1 configuration - first, configure the pins
+    // Configure MOSI0, MISO0, and SCLK0 pins as Alternate function Push Pull - those are P0.0-2
+    GPIO_Config(GPIO0, 0x0007, GPIO_AF_PP);
+
+    // Configure nSS0 pin mode as Input Weak PU
+    GPIO_Config(GPIO0, 0x0008, GPIO_IPUPD_WP);
+    GPIO_BitWrite(GPIO0, 3, 1);         // and pull it up
+
     // Now set card CS to inactive state and configure it as output - this is P0.12
     SPI_CS_HIGH();
     GPIO_Config(GPIO0, 1 << 12, GPIO_OUT_PP);
 
+#if 0
+// screw BSPI1!!!
+
 //--- BSPI1 configuration - now, configure the BSPI1 itself
     BSPI_Init(BSPI1);
-    BSPI_ClockDividerConfig(BSPI1, 6);  // Configure Baud rate Frequency: ---> APB1/6
-//    BSPI_ClockDividerConfig(BSPI1, 240);      // We should start with slow clock but it's not necessary
+//    BSPI_ClockDividerConfig(BSPI1, 6);  // Configure Baud rate Frequency: ---> APB1/6
+    BSPI_ClockDividerConfig(BSPI1, 240);      // We should start with slow clock but it's not necessary
     BSPI_Enable(BSPI1, ENABLE);
     BSPI_MasterEnable(BSPI1, ENABLE);
     BSPI_ClkActiveHigh(BSPI1, DISABLE); // Configure the clock to be active low
     BSPI_ClkFEdge(BSPI1, DISABLE);      // Enable capturing the first Data sample on the first edge of SCK
     BSPI_8bLEn(BSPI1, ENABLE);          // Set the word length to 8 bit
     BSPI_TrFifoDepth(BSPI1, 1);         // Configure the depth of transmit to 1 word/byte
+#endif
+
+//--- BSPI0 configuration - now, configure the BSPI0 itself
+    BSPI_BSPI0Conf(ENABLE);              // Enable the BSPI0 interface
+    BSPI_Init(BSPI0);
+//    BSPI_ClockDividerConfig(BSPI0, 6);  // Configure Baud rate Frequency: ---> APB1/6
+    BSPI_ClockDividerConfig(BSPI0, 240);      // We should start with slow clock but it's not necessary
+    BSPI_Enable(BSPI0, ENABLE);
+    BSPI_MasterEnable(BSPI0, ENABLE);
+    BSPI_ClkActiveHigh(BSPI0, DISABLE); // Configure the clock to be active low
+    BSPI_ClkFEdge(BSPI0, DISABLE);      // Enable capturing the first Data sample on the first edge of SCK
+    BSPI_8bLEn(BSPI0, ENABLE);          // Set the word length to 8 bit
+    BSPI_TrFifoDepth(BSPI0, 1);         // Configure the depth of transmit to 1 word/byte
 
 //--- Following code detects the card type and displays basic info and card root directory
 
