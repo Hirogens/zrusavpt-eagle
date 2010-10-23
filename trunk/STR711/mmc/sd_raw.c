@@ -215,7 +215,6 @@ uint8_t sd_raw_init()
     for(uint16_t i = 0; ; ++i)
     {
         response = sd_raw_send_command(CMD_GO_IDLE_STATE, 0);
-        printf("%x  ", response);
         if(response == (1 << R1_IDLE_STATE))
             break;
 

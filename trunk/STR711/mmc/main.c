@@ -123,7 +123,8 @@ uint8_t print_disk_info(const struct fat_fs_struct * fs) {
     printf("copy:   %d\r\n", disk_info.flag_copy);
     printf("wr.pr.: %d %d\r\n", disk_info.flag_write_protect_temp, disk_info.flag_write_protect);
     printf("format: %d\r\n", disk_info.format);
-    printf("free:   %d / %d\r\n", fat_get_fs_free(fs), fat_get_fs_size(fs));
+    // following takes a long time and does not work
+//    printf("free:   %ld / %ld\r\n", fat_get_fs_free(fs), fat_get_fs_size(fs));
 
     return 1;
 }
@@ -183,7 +184,7 @@ int main(void) {
     UART_FifoReset(UARTX, UART_RxFIFO);
     UART_FifoReset(UARTX, UART_TxFIFO);
     UART_LoopBackConfig(UARTX, DISABLE);
-    UART_Config(UARTX, 9600, UART_NO_PARITY, UART_1_StopBits, UARTM_8D);
+    UART_Config(UARTX, 115200, UART_NO_PARITY, UART_1_StopBits, UARTM_8D);
     UART_RxConfig(UARTX, ENABLE);
 
 //--- UART1 peripheral configuration - enable it, disable and reset FIFOs, disable loopback, config to 9600/-/8/1, disable RX
@@ -252,12 +253,22 @@ int main(void) {
 
 //--- Following code detects the card type and displays basic info and card root directory
 
-    if(!sd_raw_init()) {
-        printf("MMC/SD initialization failed\r\n");
-        sd_raw_init();
+//    if(!sd_raw_init()) {
+//        printf("MMC/SD initialization failed\r\n");
+//        sd_raw_init();
+//    }
+
+    printf("MMC/SD initialization:");
+    while(!sd_raw_init()) {
+        printf(".");
     }
+    printf("OK\r\n");
+
+    printf("Switching to high speed\r\n");
+    BSPI_ClockDividerConfig(BSPI0, 6);  // Configure Baud rate Frequency: ---> APB1/6
 
     /* open first partition */
+    printf("Opening partition\r\n");
     struct partition_struct *partition = partition_open(sd_raw_read,
                                                         sd_raw_read_interval,
 #if SD_RAW_WRITE_SUPPORT
@@ -286,6 +297,7 @@ int main(void) {
     }
 
     /* open file system */
+    printf("Opening filesystem\r\n");
     struct fat_fs_struct *fs = fat_open(partition);
 
     if(!fs) {
@@ -306,9 +318,11 @@ int main(void) {
     }
 
     /* print some card information as a boot message */
+    printf("Disk info\r\n");
     print_disk_info(fs);
 
     /* print directory listing */
+    printf("Directory listing\r\n");
     struct fat_dir_entry_struct dir_entry;
 
     while(fat_read_dir(dd, &dir_entry)) {
@@ -321,6 +335,7 @@ int main(void) {
         printf("%d\r\n", dir_entry.file_size);
     }
 
+    printf("--- end ---\r\n");
     while(1);
 
 }
