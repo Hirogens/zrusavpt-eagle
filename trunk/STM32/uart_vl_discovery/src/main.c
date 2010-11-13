@@ -31,8 +31,6 @@
 
 //---------------------------------------------------------------------------
 // Static variables
-USART_InitTypeDef USART_InitStructure;
-GPIO_InitTypeDef GPIO_InitStructure;
 
 //---------------------------------------------------------------------------
 // Local functions
@@ -54,12 +52,22 @@ int _write_r(void *reent, int fd, char *ptr, size_t len) {
 // Local functions
 
 int main(void) {
+	USART_InitTypeDef USART_InitStructure;
+	GPIO_InitTypeDef GPIO_InitStructure;
+	RCC_ClocksTypeDef RCC_ClockFreq;
 
 	//
 	// Clock initialization
 	//
 
-	// none yet
+	// Output SYSCLK clock on MCO pin
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	RCC_MCOConfig(RCC_MCO_SYSCLK);
 
 	//
 	// Configure peripherals used - basically enable their clocks to enable them
@@ -122,6 +130,12 @@ int main(void) {
     // Show welcome message
     printf("UART test " __DATE__ "\r\n");
 
+    RCC_GetClocksFreq(&RCC_ClockFreq);
+    printf("SYSCLK = %ld  HCLK = %ld  PCLK1 = %ld  PCLK2 = %ld ADCCLK = %ld\r\n", RCC_ClockFreq.SYSCLK_Frequency,
+												RCC_ClockFreq.HCLK_Frequency,
+												RCC_ClockFreq.PCLK1_Frequency,
+												RCC_ClockFreq.PCLK2_Frequency,
+												RCC_ClockFreq.ADCCLK_Frequency);
 
     // Green LED on as we reached end of program
     GPIO_WriteBit(GPIOC, GPIO_Pin_9, Bit_SET);
