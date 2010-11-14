@@ -1,7 +1,7 @@
 /*********************************************************************
  *
  * Code testing the basic functionality of STM32 on VL discovery kit
- * The code accesses communicates with user on UART
+ * The code displays message via UART1 using printf mechanism
  *
  * This file is free software; you can redistribute it and/or modify
  * it under the terms of either the GNU General Public License version 2
@@ -16,6 +16,7 @@
  * Author               Date       Comment
  *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * Kubik                13.11.2010 Initial code
+ * Kubik                14.11.2010 Added debug code
  ********************************************************************/
 
 //-------------------------------------------------------------------
@@ -24,6 +25,7 @@
 #include <stdio.h>
 #include "stm32f10x.h"
 #include "STM32_Discovery.h"
+#include "debug.h"
 
 //-------------------------------------------------------------------
 // Defines
@@ -137,8 +139,11 @@ int main(void) {
 												RCC_ClockFreq.PCLK2_Frequency,
 												RCC_ClockFreq.ADCCLK_Frequency);
 
+
     // Green LED on as we reached end of program
     GPIO_WriteBit(GPIOC, GPIO_Pin_9, Bit_SET);
+
+    DEBUG(("DEBUG test output: %d\r\n", 1));
 
     // and loop forever
     while(1);
