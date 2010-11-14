@@ -1,11 +1,11 @@
 /**
   ******************************************************************************
-  * @file    Project/STM32F10x_StdPeriph_Template/stm32f10x_it.c 
+  * @file    Project/STM32F10x_StdPeriph_Template/stm32f10x_it.c
   * @author  MCD Application Team
   * @version V3.3.0
   * @date    04/16/2010
   * @brief   Main Interrupt Service Routines.
-  *          This file provides template for all exceptions handler and 
+  *          This file provides template for all exceptions handler and
   *          peripherals interrupt service routine.
   ******************************************************************************
   * @copy
@@ -18,10 +18,11 @@
   * CODING INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
   *
   * <h2><center>&copy; COPYRIGHT 2010 STMicroelectronics</center></h2>
-  */ 
+  */
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f10x_it.h"
+#include "uart_buff.h"
 
 /** @addtogroup STM32F10x_StdPeriph_Template
   * @{
@@ -153,7 +154,26 @@ void SysTick_Handler(void)
 
 /**
   * @}
-  */ 
+  */
+
+/**
+  * @brief  This function handles USART1 interrupt request.
+  * @param  None
+  * @retval None
+  */
+void USART1_IRQHandler(void) {
+	static uint8_t c;
+
+    // Is it the interrupt we are interested in, i.e. TXE (transmitter buffer empty)?
+    if(USART_GetITStatus(UARTx, USART_IT_TXE) != RESET) {
+        if(UartBufferEmpty()) {         // Nothing in the buffer, nothing to send, we no longer need interrupts
+            USART_ITConfig(UARTx, USART_IT_TXE, DISABLE);
+        } else {                        // There is a characted available, send it
+            GetFromBuffer(&c);
+            USART_SendData(UARTx, c);
+        }
+    }
+}
 
 
 /******************* (C) COPYRIGHT 2010 STMicroelectronics *****END OF FILE****/
