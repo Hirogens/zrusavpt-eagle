@@ -1,7 +1,7 @@
 /*********************************************************************
  *
  * Code testing the basic functionality of STM32 on VL discovery kit
- * The code displays message via UART1 using printf mechanism
+ * The code displays message via UART1 using printf mechanism in interrupt
  *
  * This file is free software; you can redistribute it and/or modify
  * it under the terms of either the GNU General Public License version 2
@@ -17,6 +17,7 @@
  *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * Kubik                13.11.2010 Initial code
  * Kubik                14.11.2010 Added debug code
+ * Kubik                14.11.2010 Added interrupt driven printf to UARTx
  ********************************************************************/
 
 //-------------------------------------------------------------------
@@ -26,10 +27,10 @@
 #include "stm32f10x.h"
 #include "STM32_Discovery.h"
 #include "debug.h"
+#include "uart_buff.h"
 
 //-------------------------------------------------------------------
 // Defines
-#define UARTx USART1
 
 //---------------------------------------------------------------------------
 // Static variables
@@ -39,41 +40,55 @@
 
 // Redirecting of printf to UARTx - this works for Atollic
 int _write_r(void *reent, int fd, char *ptr, size_t len) {
-	size_t counter = len;
+    size_t counter = len;
 
-	while(counter-- > 0) {
-		while (USART_GetFlagStatus(UARTx, USART_FLAG_TC) == RESET);
-		USART_SendData(UARTx, (uint8_t) (*ptr));
-		ptr++;
-	}
+    while(counter-- > 0) {
+        UartSendByte((uint8_t) (*ptr));
+        ptr++;
+    }
 
-	return len;
+    return len;
 }
 
 //---------------------------------------------------------------------------
-// Local functions
-
+// main
 int main(void) {
-	USART_InitTypeDef USART_InitStructure;
-	GPIO_InitTypeDef GPIO_InitStructure;
-	RCC_ClocksTypeDef RCC_ClockFreq;
+    USART_InitTypeDef USART_InitStructure;
+    GPIO_InitTypeDef GPIO_InitStructure;
+    RCC_ClocksTypeDef RCC_ClockFreq;
+    NVIC_InitTypeDef NVIC_InitStructure;
 
-	//
-	// Clock initialization
-	//
+    UartBufferInit();
 
-	// Output SYSCLK clock on MCO pin
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+    //
+    // Clock initialization
+    //
 
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
-	RCC_MCOConfig(RCC_MCO_SYSCLK);
+    // Output SYSCLK clock on MCO pin
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 
-	//
-	// Configure peripherals used - basically enable their clocks to enable them
-	//
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+    RCC_MCOConfig(RCC_MCO_SYSCLK);
+
+    //
+    // NVIC configuration
+    //
+
+    // Configure the NVIC Preemption Priority Bits
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_0);
+
+    // Enable the USARTx Interrupt
+    NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;  //BUGBUG
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
+
+    //
+    // Configure peripherals used - basically enable their clocks to enable them
+    //
 
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1 | RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOC, ENABLE);
 
@@ -109,9 +124,9 @@ int main(void) {
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-	//
-	// UART initialization
-	//
+    //
+    // UART initialization
+    //
 
     // Prepare parameters first - traditional 115.2 / 8b / no parity, no flow control
     USART_InitStructure.USART_BaudRate = 115200;
@@ -121,7 +136,7 @@ int main(void) {
     USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
     USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
 
-    // Configure and enable UART1
+    // Configure and enable UARTx - note that interrupts are not enabled here yet!
     USART_Init(UARTx, &USART_InitStructure);
     USART_Cmd(UARTx, ENABLE);
 
@@ -134,15 +149,16 @@ int main(void) {
 
     RCC_GetClocksFreq(&RCC_ClockFreq);
     printf("SYSCLK = %ld  HCLK = %ld  PCLK1 = %ld  PCLK2 = %ld ADCCLK = %ld\r\n", RCC_ClockFreq.SYSCLK_Frequency,
-												RCC_ClockFreq.HCLK_Frequency,
-												RCC_ClockFreq.PCLK1_Frequency,
-												RCC_ClockFreq.PCLK2_Frequency,
-												RCC_ClockFreq.ADCCLK_Frequency);
+                                                RCC_ClockFreq.HCLK_Frequency,
+                                                RCC_ClockFreq.PCLK1_Frequency,
+                                                RCC_ClockFreq.PCLK2_Frequency,
+                                                RCC_ClockFreq.ADCCLK_Frequency);
 
 
     // Green LED on as we reached end of program
     GPIO_WriteBit(GPIOC, GPIO_Pin_9, Bit_SET);
 
+    // The following just tests DEBUG macro - if DEBUG is #defined, the text will be displayed
     DEBUG(("DEBUG test output: %d\r\n", 1));
 
     // and loop forever
