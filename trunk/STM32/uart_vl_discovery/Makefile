@@ -15,8 +15,8 @@ RM=rm -rf
 # Assembler, Compiler and Linker flags and linker script settings
 LINKER_FLAGS=-mthumb -mcpu=cortex-m3 -Wl,--gc-sections -T$(LINK_SCRIPT) -static  -Wl,-cref "-Wl,-Map=$(BIN_DIR)/uart.map"
 LINK_SCRIPT="stm32_flash.ld"
-ASSEMBLER_FLAGS=-c -g -O0 -mcpu=cortex-m3 -mthumb  
-COMPILER_FLAGS=-c -g -mcpu=cortex-m3 -O0 -Wall -ffunction-sections -fdata-sections -mthumb -D"USE_STM32_DISCOVERY" -D"STM32F10X_MD_VL" -D"USE_STDPERIPH_DRIVER"  -Ifirmware/CMSIS/CM3/CoreSupport -Ifirmware/CMSIS/CM3/DeviceSupport/ST/STM32F10x -Ifirmware/STM32F10x_StdPeriph_Driver/inc -Isrc -ISTM32_EVAL -ISTM32_EVAL/Board -ISTM32_EVAL/Common
+ASSEMBLER_FLAGS=-c -g -O0 -mcpu=cortex-m3 -mthumb
+COMPILER_FLAGS=-c -g -mcpu=cortex-m3 -O0 -Wall -ffunction-sections -fdata-sections -mthumb -D"USE_STM32_DISCOVERY" -D"STM32F10X_MD_VL" -D"USE_STDPERIPH_DRIVER"  -Ifirmware/CMSIS/CM3/CoreSupport -Ifirmware/CMSIS/CM3/DeviceSupport/ST/STM32F10x -Ifirmware/STM32F10x_StdPeriph_Driver/inc -Isrc -ISTM32_EVAL -ISTM32_EVAL/Board -ISTM32_EVAL/Common -D"STM32_DEBUG"
 
 # Define output directory
 OBJECT_DIR = Debug
