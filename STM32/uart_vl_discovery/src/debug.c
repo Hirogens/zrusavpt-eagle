@@ -15,9 +15,11 @@
  * Author               Date       Comment
  *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * Kubik                14.11.2010 Initial code
+ * Kubik                15.11.2010 Redirected debug prints to stderr
  ********************************************************************/
 
 #include <stdio.h>
+#include <sys/unistd.h>
 #include "debug.h"
 
 DEBUG_CODE (
@@ -26,7 +28,7 @@ void DebugPrint (char *format, ...) {
     va_list ap;
 
     va_start(ap, format);
-    vprintf(format, ap);
+    vdiprintf(STDERR_FILENO, format, ap);
     va_end(ap);
 }
 
