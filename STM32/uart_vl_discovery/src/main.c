@@ -41,20 +41,21 @@
 // Local functions
 
 // Redirecting of printf to UARTx - this works for Atollic
+// fd selects stdout or stderr - that's UARTx or UARTd
 int _write_r(void *reent, int fd, char *ptr, size_t len) {
 	size_t counter = len;
 	USART_TypeDef *Usart;
 
-	if(fd == STDOUT_FILENO) {
+	if(fd == STDOUT_FILENO) {			// stdout goes to UARTx
 		Usart = UARTx;
 	} else if(fd == STDERR_FILENO) {
-		Usart = UARTd;
+		Usart = UARTd;					// stderr goes to UARTd
 	} else {
 		return len;
 	}
 
-	while(counter-- > 0) {
-		while (USART_GetFlagStatus(Usart, USART_FLAG_TC) == RESET);
+	while(counter-- > 0) {				// Send the character from the buffer to UART
+		while (USART_GetFlagStatus(Usart, USART_FLAG_TXE) == RESET);
 		USART_SendData(Usart, (uint8_t) (*ptr));
 		ptr++;
 	}
@@ -160,6 +161,7 @@ int main(void) {
     // Green LED on as we reached end of program
     GPIO_WriteBit(GPIOC, GPIO_Pin_9, Bit_SET);
 
+    // Testing debug output, it goes to UART2
     DEBUG(("DEBUG test output: %d\r\n", 1));
 
     // and loop forever
