@@ -28,11 +28,10 @@
 #include "stm32f10x.h"
 #include "STM32_Discovery.h"
 #include "debug.h"
+#include "uart.h"
 
 //-------------------------------------------------------------------
 // Defines
-#define UARTx USART1
-#define UARTd USART2
 
 //---------------------------------------------------------------------------
 // Static variables
@@ -67,7 +66,6 @@ int _write_r(void *reent, int fd, char *ptr, size_t len) {
 // Local functions
 
 int main(void) {
-	USART_InitTypeDef USART_InitStructure;
 	GPIO_InitTypeDef GPIO_InitStructure;
 	RCC_ClocksTypeDef RCC_ClockFreq;
 
@@ -88,8 +86,7 @@ int main(void) {
 	// Configure peripherals used - basically enable their clocks to enable them
 	//
 
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1 | RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOC, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOC, ENABLE);
 
     //
     // Configure LEDs - we use them as an indicator the platform is alive somehow
@@ -112,36 +109,13 @@ int main(void) {
     // GPIO initialization
     //
 
-    // Configure USART1 and USART2 Tx as alternate function push-pull
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9 | GPIO_Pin_2;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-    GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-    // Configure USART1 and USART2 Rx as input floating
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10 | GPIO_Pin_3;
-    GPIO_Init(GPIOA, &GPIO_InitStructure);
+    // none used
 
 	//
 	// UART initialization
 	//
 
-    // Prepare parameters first - traditional 115.2 / 8b / no parity, no flow control
-    USART_InitStructure.USART_BaudRate = 115200;
-    USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-    USART_InitStructure.USART_StopBits = USART_StopBits_1;
-    USART_InitStructure.USART_Parity = USART_Parity_No;
-    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-    USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-
-    // Configure and enable UARTx
-    USART_Init(UARTx, &USART_InitStructure);
-    USART_Cmd(UARTx, ENABLE);
-
-    // Configure and enable UARTd
-    USART_Init(UARTd, &USART_InitStructure);
-    USART_Cmd(UARTd, ENABLE);
+    InitializeUarts();
 
     //
     // Main program loop
