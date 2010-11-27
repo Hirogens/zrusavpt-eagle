@@ -62,6 +62,24 @@ int _write_r(void *reent, int fd, char *ptr, size_t len) {
 	return len;
 }
 
+
+/*******************************************************************************
+* Function Name  : delay
+* Description    : Inserts a time delay.
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+static void delay(void)
+{
+  vu32 i = 0;
+
+  for(i = 0xFF; i != 0; i--)
+  {
+  }
+}
+
+
 //---------------------------------------------------------------------------
 // Local functions
 
@@ -132,11 +150,37 @@ int main(void) {
 												RCC_ClockFreq.ADCCLK_Frequency);
 
 
-    // Green LED on as we reached end of program
-    GPIO_WriteBit(GPIOC, GPIO_Pin_9, Bit_SET);
-
     // Testing debug output, it goes to UART2
     DEBUG(("DEBUG test output: %d\r\n", 1));
+
+    //
+    // Configuring quadrature encoder using TIM4 and pins PB6 & PB7
+    //
+
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB | RCC_APB2Periph_AFIO, ENABLE);
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6|GPIO_Pin_7;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+    GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+    TIM_SetAutoreload(TIM4, 0xffff);
+    TIM_EncoderInterfaceConfig(TIM4, TIM_EncoderMode_TI12, TIM_ICPolarity_Rising, TIM_ICPolarity_Rising);
+
+    TIM_Cmd(TIM4, ENABLE);
+    uint16_t tim4_counter = 0;
+
+    iprintf("\r\n");
+    while(1) {
+    	tim4_counter = TIM_GetCounter(TIM4);
+    	iprintf("\r%5d ", tim4_counter >> 2);
+    	delay();
+    	delay();
+    	delay();
+    	delay();
+    }
+
+    // Green LED on as we reached end of program
+    GPIO_WriteBit(GPIOC, GPIO_Pin_9, Bit_SET);
 
     // and loop forever
     while(1);
