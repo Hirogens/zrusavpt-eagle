@@ -22,6 +22,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f10x_it.h"
+#include "diskio.h"
 
 /** @addtogroup STM32F10x_StdPeriph_Template
   * @{
@@ -133,6 +134,26 @@ void PendSV_Handler(void)
   */
 void SysTick_Handler(void)
 {
+	static uint16_t cnt=0;
+	static uint8_t flip=0, cntdiskio=0;
+
+	cnt++;
+	if( cnt >= 500 ) {
+		cnt = 0;
+		/* alive sign */
+		if ( flip ) {
+			GPIO_WriteBit(GPIOC, GPIO_Pin_9, Bit_SET);
+		} else {
+			GPIO_WriteBit(GPIOC, GPIO_Pin_9, Bit_RESET);
+		}
+		flip = !flip;
+	}
+
+	cntdiskio++;
+	if ( cntdiskio >= 10 ) {
+		cntdiskio = 0;
+		disk_timerproc(); /* to be called every 10ms */
+	}
 }
 
 /******************************************************************************/
