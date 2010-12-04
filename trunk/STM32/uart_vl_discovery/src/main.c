@@ -18,6 +18,8 @@
  * Kubik                13.11.2010 Initial code
  * Kubik                14.11.2010 Added debug code
  * Kubik                15.11.2010 Debug now goes to UART2
+ * Kubik                ??.11.2010 Added test code for quadrature encoder
+ * Kubik                 4.12.2010 Implemented SD/MMC card support
  ********************************************************************/
 
 //-------------------------------------------------------------------
@@ -29,6 +31,7 @@
 #include "STM32_Discovery.h"
 #include "debug.h"
 #include "uart.h"
+#include "diskio.h"
 
 //-------------------------------------------------------------------
 // Defines
@@ -86,6 +89,9 @@ static void delay(void)
 int main(void) {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	RCC_ClocksTypeDef RCC_ClockFreq;
+    uint32_t dw;
+    uint16_t w;
+    uint8_t b;
 
 	//
 	// Clock initialization
@@ -99,6 +105,15 @@ int main(void) {
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 	RCC_MCOConfig(RCC_MCO_SYSCLK);
+
+	//
+	// Configure debug trigger as output (GPIOA pin 0)
+	//
+
+    GPIO_WriteBit(GPIOA, GPIO_Pin_0, Bit_SET);
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
 	//
 	// Configure peripherals used - basically enable their clocks to enable them
@@ -127,13 +142,22 @@ int main(void) {
     // GPIO initialization
     //
 
-    // none used
+    // none used at the moment besides the LEDs and stuff that other peripherals configured for themselves
 
 	//
 	// UART initialization
 	//
 
     InitializeUarts();
+
+    //
+    // Setup SysTick Timer for 1 millisecond interrupts, also enables Systick and Systick-Interrupt
+    //
+
+	if (SysTick_Config(SystemCoreClock / 1000)) {
+        DEBUG(("Systick failed, system halted\r\n"));
+		while (1);
+	}
 
     //
     // Main program loop
@@ -149,13 +173,35 @@ int main(void) {
 												RCC_ClockFreq.PCLK2_Frequency,
 												RCC_ClockFreq.ADCCLK_Frequency);
 
+    //
+    // Disk initialization - this sets SPI1 to correct mode and initializes the SD/MMC card
+    //
 
-    // Testing debug output, it goes to UART2
-    DEBUG(("DEBUG test output: %d\r\n", 1));
+    if(disk_initialize(0) & STA_NOINIT) {
+    	iprintf("No memory card found\r\n");
+    } else {
+        disk_ioctl(0, GET_SECTOR_COUNT, &dw);
+        disk_ioctl(0, MMC_GET_TYPE, &b);
+        if(b & CT_MMC) {
+        	iprintf("MMC");
+        } else if(b & CT_SD1) {
+        	iprintf("SD 1.0");
+        } else if(b & CT_SD2) {
+        	iprintf("SD 2.0");
+        } else {
+        	iprintf("unknown");
+        }
+        iprintf(" card found, %ldMB\r\n", dw >> 11);
+    }
+
+    while(1);
+
 
     //
     // Configuring quadrature encoder using TIM4 and pins PB6 & PB7
     //
+
+
 
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB | RCC_APB2Periph_AFIO, ENABLE);
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
@@ -167,21 +213,17 @@ int main(void) {
     TIM_EncoderInterfaceConfig(TIM4, TIM_EncoderMode_TI12, TIM_ICPolarity_Rising, TIM_ICPolarity_Rising);
 
     TIM_Cmd(TIM4, ENABLE);
-    uint16_t tim4_counter = 0;
 
     iprintf("\r\n");
     while(1) {
-    	tim4_counter = TIM_GetCounter(TIM4);
-    	iprintf("\r%5d ", tim4_counter >> 2);
+    	w = TIM_GetCounter(TIM4);
+    	iprintf("\r%5d ", w >> 2);
     	delay();
     	delay();
     	delay();
     	delay();
     }
 
-    // Green LED on as we reached end of program
-    GPIO_WriteBit(GPIOC, GPIO_Pin_9, Bit_SET);
-
-    // and loop forever
+    // loop forever
     while(1);
 }
