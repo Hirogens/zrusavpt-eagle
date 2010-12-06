@@ -32,6 +32,7 @@
 #include "debug.h"
 #include "uart.h"
 #include "diskio.h"
+#include "ff.h"
 
 //-------------------------------------------------------------------
 // Defines
@@ -82,6 +83,67 @@ static void delay(void)
   }
 }
 
+//
+//--- Helpers for FAT support
+//
+
+FATFS Fatfs[1];		/* File system object for each logical drive */
+BYTE Buff[1*1024] __attribute__ ((aligned (4))) ;		/* Working buffer */
+char Lfname[512];
+FATFS *fs;				/* Pointer to file system object */
+DWORD acc_size;				/* Work register for fs command */
+WORD acc_files, acc_dirs;
+FILINFO Finfo;
+
+static
+void put_rc (FRESULT rc)
+{
+	const char *p;
+	static const char str[] =
+		"OK\0" "NOT_READY\0" "NO_FILE\0" "FR_NO_PATH\0" "INVALID_NAME\0" "INVALID_DRIVE\0"
+		"DENIED\0" "EXIST\0" "RW_ERROR\0" "WRITE_PROTECTED\0" "NOT_ENABLED\0"
+		"NO_FILESYSTEM\0" "INVALID_OBJECT\0" "MKFS_ABORTED\0";
+	FRESULT i;
+
+	for (p = str, i = 0; i != rc && *p; i++) {
+		while(*p++);
+	}
+	iprintf("rc=%u FR_%s\n", (UINT)rc, p);
+}
+
+static
+FRESULT scan_files (char* path)
+{
+	DIR dirs;
+	FRESULT res;
+	BYTE i;
+	char *fn;
+
+
+	if ((res = f_opendir(&dirs, path)) == FR_OK) {
+		i = strlen(path);
+		while (((res = f_readdir(&dirs, &Finfo)) == FR_OK) && Finfo.fname[0]) {
+#if _USE_LFN
+				fn = *Finfo.lfname ? Finfo.lfname : Finfo.fname;
+#else
+				fn = Finfo.fname;
+#endif
+			if (Finfo.fattrib & AM_DIR) {
+				acc_dirs++;
+				*(path+i) = '/'; strcpy(path+i+1, fn);
+				res = scan_files(path);
+				*(path+i) = '\0';
+				if (res != FR_OK) break;
+			} else {
+//				xprintf("%s/%s\n", path, fn);
+				acc_files++;
+				acc_size += Finfo.fsize;
+			}
+		}
+	}
+
+	return res;
+}
 
 //---------------------------------------------------------------------------
 // Local functions
@@ -173,6 +235,9 @@ int main(void) {
 												RCC_ClockFreq.PCLK2_Frequency,
 												RCC_ClockFreq.ADCCLK_Frequency);
 
+#define SD_CARD_TEST
+
+#ifdef SD_CARD_TEST
     //
     // Disk initialization - this sets SPI1 to correct mode and initializes the SD/MMC card
     //
@@ -194,8 +259,52 @@ int main(void) {
         iprintf(" card found, %ldMB\r\n", dw >> 11);
     }
 
-    while(1);
+	char *ptr, *ptr2;
+	long p1, p2, p3;
+	BYTE res, b1;
+	WORD w1;
+	UINT s1, s2, cnt, blen = sizeof(Buff);
+	DWORD ofs = 0, sect = 0;
 
+    f_mount(0, &Fatfs[0]);
+
+	res = f_getfree("", (DWORD*)&p2, &fs);
+	if(res) {
+		put_rc(res);
+	} else {
+		iprintf("FAT type = %u (%s)\nBytes/Cluster = %lu\nNumber of FATs = %u\n"
+				"Root DIR entries = %u\nSectors/FAT = %lu\nNumber of clusters = %lu\n"
+				"FAT start (lba) = %lu\nDIR start (lba,clustor) = %lu\nData start (lba) = %lu\n\n",
+				(WORD)fs->fs_type,
+				(fs->fs_type==FS_FAT12) ? "FAT12" : (fs->fs_type==FS_FAT16) ? "FAT16" : "FAT32",
+				(DWORD)fs->csize * 512, (WORD)fs->n_fats,
+				fs->n_rootdir, fs->sects_fat, (DWORD)fs->max_clust - 2,
+				fs->fatbase, fs->dirbase, fs->database
+		);
+	}
+
+	acc_size = acc_files = acc_dirs = 0;
+#if _USE_LFN
+	Finfo.lfname = Lfname;
+	Finfo.lfsize = sizeof(Lfname);
+#endif
+	res = scan_files(ptr);
+	if(res) {
+		put_rc(res);
+	} else {
+		iprintf("%u files, %lu bytes.\n%u folders.\n"
+				"%lu KB total disk space.\n%lu KB available.\n",
+				acc_files, acc_size, acc_dirs,
+				(fs->max_clust - 2) * (fs->csize / 2), p2 * (fs->csize / 2)
+		);
+	}
+
+
+
+    while(1);
+#endif // SD_CARD_TEST
+
+#ifdef ENCODER_TEST
 
     //
     // Configuring quadrature encoder using TIM4 and pins PB6 & PB7
@@ -223,6 +332,7 @@ int main(void) {
     	delay();
     	delay();
     }
+#endif // ENCODER_TEST
 
     // loop forever
     while(1);
