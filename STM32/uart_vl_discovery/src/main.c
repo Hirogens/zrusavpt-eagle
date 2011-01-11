@@ -235,7 +235,7 @@ int main(void) {
 												RCC_ClockFreq.PCLK2_Frequency,
 												RCC_ClockFreq.ADCCLK_Frequency);
 
-#define SD_CARD_TEST
+//#define SD_CARD_TEST
 
 #ifdef SD_CARD_TEST
     //
@@ -333,6 +333,46 @@ int main(void) {
     	delay();
     }
 #endif // ENCODER_TEST
+
+#define RTC_TEST
+
+#ifdef RTC_TEST
+    //
+    // Thanks for the sources, Mard!
+    //
+
+    // Enable clocks, access to backup domain, and reset it
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);
+    PWR_BackupAccessCmd(ENABLE);
+    BKP_DeInit();
+
+    // Enable LSE and wait for it to come up
+    RCC_LSEConfig(RCC_LSE_ON);
+    while (RCC_GetFlagStatus(RCC_FLAG_LSERDY) == RESET);
+
+    // Assing LSE osc as clock source
+    RCC_RTCCLKConfig(RCC_RTCCLKSource_LSE);
+
+    // Enable RTC clock entry, wait for sync
+    RCC_RTCCLKCmd(ENABLE);
+    RTC_WaitForSynchro();
+    RTC_WaitForLastTask();
+
+    // Set prescaler - has to be one less than the value needed!
+    RTC_SetPrescaler(32767);
+    RTC_WaitForLastTask();
+
+    uint32_t dw1 = 0xFFFFFFFF;
+	while(1) {
+        dw = RTC_GetCounter();
+        if(dw != dw1) {
+            iprintf("%8ld\r\n", dw);
+            dw1 = dw;
+        }
+    }
+#endif // RTC_TEST
+
+
 
     // loop forever
     while(1);
